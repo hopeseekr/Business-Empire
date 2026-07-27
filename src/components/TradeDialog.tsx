@@ -114,8 +114,19 @@ export function TradeDialog({
   }, [resolvedShares, price])
 
   const setModeExclusive = (next: AmountMode) => {
+    // Dollars → shares: carry over the equivalent share count into the input.
+    // Shares → dollars (or empty dollar amount): clear the field.
+    if (next === 'shares' && mode === 'dollars') {
+      const dollars = parseUserNumber(amount)
+      if (dollars != null && dollars > 0 && price > 0) {
+        setAmount(formatShares(dollars / price))
+      } else {
+        setAmount('')
+      }
+    } else {
+      setAmount('')
+    }
     setMode(next)
-    setAmount('')
     setError(null)
     setStep('edit')
     setPendingSellShares(null)
