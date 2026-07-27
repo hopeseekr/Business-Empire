@@ -32,9 +32,14 @@ import type { InvestmentAsset, InvestmentKind, TradeAction, TradeAnalysis } from
 
 interface OwnedRow {
   asset: InvestmentAsset
+  /** Live current price when valid; 0 placeholder when mid-edit (see priceValid). */
   price: number
+  /** False when Current price is empty/zero mid-edit — metrics show —; do not trade. */
+  priceValid: boolean
   firstPrice: number
   shares: number
+  /** True when metrics used a real live price + shares (not placeholders). */
+  metricsReady: boolean
   totalInvestment: number
   gainLoss: number
   gainLossPct: number
@@ -233,7 +238,12 @@ export function Investments() {
 
   const matches = useMemo(() => searchAssets(kind, query).slice(0, 40), [kind, query])
 
-  /** Owned positions for the active Stocks/Crypto tab (shares > 0 + valid price). */
+  /**
+   * Owned / register rows for the active Stocks/Crypto tab.
+   * Keep a row while shares are held (or both fields still present mid-edit), even if
+   * Current price is temporarily blank/zero. Do not invent a live price from cost basis
+   * for gain math — incomplete rows show "—" until price and shares are both valid again.
+   */
   const ownedRows = useMemo((): OwnedRow[] => {
     const list = assetsFor(kind)
     const rows: OwnedRow[] = []
@@ -244,27 +254,71 @@ export function Investments() {
 
       const priceVal = parseUserNumber(entry.price)
       const sharesVal = parseUserNumber(entry.shares)
-      if (priceVal == null || priceVal <= 0) continue
-      if (sharesVal == null || sharesVal <= 0) continue
+      const priceValid = priceVal != null && priceVal > 0
+      const sharesHeld = sharesVal != null && sharesVal > 0
+      const priceFieldSet = entry.price.trim() !== ''
+      const sharesFieldSet = entry.shares.trim() !== ''
 
       const firstRaw = resolveFirstPrice(entry)
       const firstPriceVal = firstRaw ? parseUserNumber(firstRaw) : null
-      if (firstPriceVal == null || firstPriceVal <= 0) continue
 
-      const analysis = analyzeTrade(asset, priceVal, sharesVal)
-      const totalInvestment = analysis.positionValue ?? priceVal * sharesVal
-      const gainLoss = (priceVal - firstPriceVal) * sharesVal
-      const gainLossPct = ((priceVal - firstPriceVal) / firstPriceVal) * 100
+      // Holding shares always stays on the register. Price-only lookups stay out.
+      // Both fields still present (incl. "0") after a basis exists keeps mid-edit zeros.
+      const inRegister =
+        sharesHeld ||
+        (sharesFieldSet &&
+          priceFieldSet &&
+          firstPriceVal != null &&
+          firstPriceVal > 0)
+      if (!inRegister) continue
+
+      const shares = sharesVal != null && sharesVal >= 0 ? sharesVal : 0
+      const basis =
+        firstPriceVal != null && firstPriceVal > 0
+          ? firstPriceVal
+          : priceValid
+            ? priceVal!
+            : 0
+      if (!(basis > 0)) continue
+
+      const metricsReady = priceValid && sharesHeld
+      const livePrice = priceValid ? priceVal! : 0
+
+      if (!metricsReady) {
+        rows.push({
+          asset,
+          price: livePrice,
+          priceValid,
+          firstPrice: basis,
+          shares,
+          metricsReady: false,
+          // Rank by cost basis capital so the row does not jump while editing price.
+          totalInvestment: sharesHeld ? basis * shares : 0,
+          gainLoss: 0,
+          gainLossPct: 0,
+          maxPotential: 0,
+          potentialPct: 0,
+          action: 'HOLD',
+        })
+        continue
+      }
+
+      const analysis = analyzeTrade(asset, livePrice, shares)
+      const totalInvestment = analysis.positionValue ?? livePrice * shares
+      const gainLoss = (livePrice - basis) * shares
+      const gainLossPct = ((livePrice - basis) / basis) * 100
 
       rows.push({
         asset,
-        price: priceVal,
-        firstPrice: firstPriceVal,
-        shares: sharesVal,
+        price: livePrice,
+        priceValid: true,
+        firstPrice: basis,
+        shares,
+        metricsReady: true,
         totalInvestment,
         gainLoss,
         gainLossPct,
-        maxPotential: analysis.totalUpside ?? (asset.max - priceVal) * sharesVal,
+        maxPotential: analysis.totalUpside ?? (asset.max - livePrice) * shares,
         potentialPct: analysis.potentialPct,
         action: analysis.action,
       })
@@ -275,10 +329,10 @@ export function Investments() {
     return rows
   }, [kind, entries])
 
-  // Persist prefs whenever kind, selection, or entries change.
+  // Persist UI meta + each asset as its own localStorage key.
   useEffect(() => {
     saveInvestmentPrefs({
-      version: 1,
+      version: 2,
       kind,
       selectedIds,
       entries,
@@ -330,8 +384,21 @@ export function Investments() {
     const next = sanitizeDecimalInput(value)
     setPriceInput(next)
     if (!selected) return
+    // Keystrokes only — do not lock cost basis on partial digits.
     setEntries((prev) =>
       upsertEntry(prev, selected.kind, selected.id, next, sharesInput),
+    )
+  }
+
+  /** Lock cost basis from the full price once the user leaves the field. */
+  const commitPriceBasis = () => {
+    if (!selected) return
+    const priceNum = parseUserNumber(priceInput)
+    if (priceNum == null || priceNum <= 0) return
+    setEntries((prev) =>
+      upsertEntry(prev, selected.kind, selected.id, priceInput, sharesInput, {
+        establishBasis: true,
+      }),
     )
   }
 
@@ -339,8 +406,15 @@ export function Investments() {
     const next = sanitizeDecimalInput(value)
     setSharesInput(next)
     if (!selected) return
+    const sharesNum = parseUserNumber(next)
+    const priceNum = parseUserNumber(priceInput)
+    // Opening/holding a position with a complete price locks basis if missing.
+    const establishBasis =
+      sharesNum != null && sharesNum > 0 && priceNum != null && priceNum > 0
     setEntries((prev) =>
-      upsertEntry(prev, selected.kind, selected.id, priceInput, next),
+      upsertEntry(prev, selected.kind, selected.id, priceInput, next, {
+        establishBasis,
+      }),
     )
   }
 
@@ -348,7 +422,11 @@ export function Investments() {
   const applyShareDelta = (asset: InvestmentAsset, price: number, nextShares: number) => {
     const priceStr = String(price)
     const sharesStr = nextShares > 1e-12 ? formatShares(nextShares) : ''
-    setEntries((prev) => upsertEntry(prev, asset.kind, asset.id, priceStr, sharesStr))
+    setEntries((prev) =>
+      upsertEntry(prev, asset.kind, asset.id, priceStr, sharesStr, {
+        establishBasis: nextShares > 1e-12,
+      }),
+    )
     setSelectedIds((prev) => ({ ...prev, [asset.kind]: asset.id }))
     setSelected(asset)
     setPriceInput(priceStr)
@@ -402,8 +480,10 @@ export function Investments() {
     setTradePosition({
       asset: selected,
       price: priceVal,
+      priceValid: true,
       firstPrice: firstPriceVal,
       shares: held,
+      metricsReady: held > 0,
       totalInvestment: held > 0 ? priceVal * held : 0,
       gainLoss: held > 0 ? (priceVal - firstPriceVal) * held : 0,
       gainLossPct:
@@ -591,36 +671,62 @@ export function Investments() {
                   const potPositive = row.maxPotential >= 0
                   const gainPositive = row.gainLoss > 0
                   const gainNegative = row.gainLoss < 0
-                  const gainClass = gainPositive
-                    ? 'pot-up'
-                    : gainNegative
-                      ? 'pot-down'
-                      : undefined
+                  const gainClass = row.metricsReady
+                    ? gainPositive
+                      ? 'pot-up'
+                      : gainNegative
+                        ? 'pot-down'
+                        : undefined
+                    : undefined
                   const realized =
                     getAssetRealized(realizedPnl, row.asset.kind, row.asset.id)?.realized ?? 0
                   const realizedClass =
                     realized > 0 ? 'pot-up' : realized < 0 ? 'pot-down' : undefined
+                  const shareLabel =
+                    row.shares > 0
+                      ? `${row.shares.toLocaleString()} shares`
+                      : 'shares zeroed — still on register'
                   return (
                     <tr
                       key={`${row.asset.kind}-${row.asset.id}`}
                       className={isSelected ? 'selected' : undefined}
                       style={{ cursor: 'pointer' }}
                       onClick={() => selectAsset(row.asset)}
-                      title={`${row.shares.toLocaleString()} shares · first price ${formatMoney(row.firstPrice)} · click to edit`}
+                      title={`${shareLabel} · cost basis ${formatMoney(row.firstPrice)} · click to edit`}
                     >
                       <td className="collection-name">{row.asset.name}</td>
-                      <td className="num-cell">{formatMoney(row.price)}</td>
-                      <td className="num-cell">{formatMoney(row.totalInvestment)}</td>
+                      <td className="num-cell">
+                        {row.priceValid ? formatMoney(row.price) : '—'}
+                      </td>
+                      <td className="num-cell">
+                        {row.metricsReady ? formatMoney(row.totalInvestment) : '—'}
+                      </td>
                       <td className={`num-cell ${gainClass ?? ''}`.trim()}>
-                        {formatMoney(row.gainLoss)}{' '}
-                        <span className="pot-pct">({formatPct(row.gainLossPct)})</span>
+                        {row.metricsReady ? (
+                          <>
+                            {formatMoney(row.gainLoss)}{' '}
+                            <span className="pot-pct">({formatPct(row.gainLossPct)})</span>
+                          </>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                       <td className={`num-cell ${realizedClass ?? ''}`.trim()}>
                         {formatSignedMoney(realized)}
                       </td>
-                      <td className={`num-cell ${potPositive ? 'pot-up' : 'pot-down'}`}>
-                        {formatMoney(row.maxPotential)}{' '}
-                        <span className="pot-pct">({formatPct(row.potentialPct)})</span>
+                      <td
+                        className={`num-cell ${
+                          row.metricsReady ? (potPositive ? 'pot-up' : 'pot-down') : ''
+                        }`.trim()}
+                      >
+                        {row.metricsReady ? (
+                          <>
+                            {formatMoney(row.maxPotential)}{' '}
+                            <span className="pot-pct">({formatPct(row.potentialPct)})</span>
+                          </>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                       <td>
                         <button
@@ -628,10 +734,20 @@ export function Investments() {
                           className={`action-chip action-chip-btn ${actionClass}`}
                           onClick={(e) => {
                             e.stopPropagation()
+                            if (!row.priceValid) return
                             setTradePosition(row)
                           }}
-                          title={`Trade ${row.asset.name}`}
-                          aria-label={`Open buy or sell dialog for ${row.asset.name}, signal ${row.action}`}
+                          disabled={!row.priceValid}
+                          title={
+                            row.priceValid
+                              ? `Trade ${row.asset.name}`
+                              : 'Enter a current price greater than 0 to trade'
+                          }
+                          aria-label={
+                            row.priceValid
+                              ? `Open buy or sell dialog for ${row.asset.name}, signal ${row.action}`
+                              : `Cannot trade ${row.asset.name} without a current price`
+                          }
                         >
                           {row.action}
                         </button>
@@ -791,6 +907,7 @@ export function Investments() {
                   value={priceInput}
                   onChange={(e) => setPriceForSelected(e.target.value)}
                   onFocus={selectAllOnFocus}
+                  onBlur={commitPriceBasis}
                 />
                 {priceError && <div className="field-error">{priceError}</div>}
               </div>
