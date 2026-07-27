@@ -324,14 +324,31 @@ export function TradeDialog({
                 onFocus={selectAllOnFocus}
               />
               {resolvedShares != null && mode === 'dollars' && (
-                <div className="stat-hint" style={{ marginTop: '0.35rem' }}>
-                  ≈ <strong>{formatShares(resolvedShares)}</strong> shares ·{' '}
-                  {formatMoney(resolvedCost ?? 0)} at {formatMoney(price)}
+                <div className="trade-amount-equiv">
+                  ≈{' '}
+                  <span className="trade-amount-equiv-num trade-amount-equiv-num-primary">
+                    {formatShares(resolvedShares)}
+                  </span>{' '}
+                  shares ·{' '}
+                  <span className="trade-amount-equiv-num trade-amount-equiv-num-secondary">
+                    {formatMoney(resolvedCost ?? 0)}
+                  </span>{' '}
+                  at{' '}
+                  <span className="trade-amount-equiv-num trade-amount-equiv-num-primary">
+                    {formatMoney(price)}
+                  </span>
                 </div>
               )}
               {resolvedShares != null && mode === 'shares' && (
-                <div className="stat-hint" style={{ marginTop: '0.35rem' }}>
-                  ≈ <strong>{formatMoney(resolvedCost ?? 0)}</strong> at {formatMoney(price)}
+                <div className="trade-amount-equiv">
+                  ≈{' '}
+                  <span className="trade-amount-equiv-num trade-amount-equiv-num-primary">
+                    {formatMoney(resolvedCost ?? 0)}
+                  </span>{' '}
+                  at{' '}
+                  <span className="trade-amount-equiv-num trade-amount-equiv-num-secondary">
+                    {formatMoney(price)}
+                  </span>
                 </div>
               )}
               {error && <div className="field-error">{error}</div>}

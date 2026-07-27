@@ -1620,6 +1620,28 @@ button.verdict-banner-clickable:focus-visible {
   margin-bottom: 0.95rem;
 }
 
+/* Conversion hint under the amount input (≈ shares / $ total) */
+.trade-amount-equiv {
+  margin-top: 0.4rem;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: #b0bac4; /* lighter grey than --text-dim for readability */
+  font-weight: 500;
+}
+
+.trade-amount-equiv-num {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.trade-amount-equiv-num-primary {
+  color: var(--text); /* white */
+}
+
+.trade-amount-equiv-num-secondary {
+  color: #90caf9; /* lighter blue than --info */
+}
+
 .trade-all-btn {
   border: 1px solid rgba(100, 181, 246, 0.4);
   background: rgba(100, 181, 246, 0.12);
