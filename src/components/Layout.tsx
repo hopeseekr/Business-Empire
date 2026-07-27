@@ -13,23 +13,30 @@ const titles: Record<string, string> = {
 const isInvestments = (path: string) => path.startsWith('/investments')
 const isClothing = (path: string) => path.startsWith('/clothing')
 
+/** Minify sidebar on dense tool pages so content gets more room. */
+const shouldMinifySidebar = (path: string) =>
+  isInvestments(path) || isClothing(path)
+
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
   const title = titles[location.pathname] ?? 'Business Empire'
+  const minified = shouldMinifySidebar(location.pathname)
 
   const close = () => setSidebarOpen(false)
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${minified ? ' sidebar-minified' : ''}`}>
       <div
         className={`sidebar-overlay${sidebarOpen ? ' visible' : ''}`}
         onClick={close}
         aria-hidden={!sidebarOpen}
       />
 
-      <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>
-        <NavLink to="/" className="brand" onClick={close}>
+      <aside
+        className={`sidebar${sidebarOpen ? ' open' : ''}${minified ? ' minified' : ''}`}
+      >
+        <NavLink to="/" className="brand" onClick={close} title="Business Empire">
           <div className="brand-mark" aria-hidden>
             🏢
           </div>
@@ -48,9 +55,12 @@ export function Layout() {
                 end
                 className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                 onClick={close}
+                title="Dashboard"
               >
-                <span className="nav-icon" aria-hidden="true">🏠</span>
-                Dashboard
+                <span className="nav-icon" aria-hidden="true">
+                  🏠
+                </span>
+                <span className="nav-label">Dashboard</span>
               </NavLink>
             </li>
           </ul>
@@ -65,12 +75,15 @@ export function Layout() {
                   to={`/${b.id}`}
                   className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                   onClick={close}
+                  title={b.name}
                 >
-                <span className="nav-icon" aria-hidden="true">
-                  {b.icon}
-                </span>
-                  {b.shortName}
-                  {b.status === 'coming-soon' && <span className="badge-soon">Soon</span>}
+                  <span className="nav-icon" aria-hidden="true">
+                    {b.icon}
+                  </span>
+                  <span className="nav-label">{b.shortName}</span>
+                  {b.status === 'coming-soon' && (
+                    <span className="badge-soon">Soon</span>
+                  )}
                 </NavLink>
               </li>
             ))}
@@ -88,9 +101,12 @@ export function Layout() {
                     end
                     className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                     onClick={close}
+                    title="Overview"
                   >
-                    <span className="nav-icon" aria-hidden="true">📊</span>
-                    Overview
+                    <span className="nav-icon" aria-hidden="true">
+                      📊
+                    </span>
+                    <span className="nav-label">Overview</span>
                   </NavLink>
                 </li>
                 <li>
@@ -98,9 +114,12 @@ export function Layout() {
                     to="/clothing/launch"
                     className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                     onClick={close}
+                    title="Launch Helper"
                   >
-                    <span className="nav-icon" aria-hidden="true">🚀</span>
-                    Launch Helper
+                    <span className="nav-icon" aria-hidden="true">
+                      🚀
+                    </span>
+                    <span className="nav-label">Launch Helper</span>
                   </NavLink>
                 </li>
                 <li>
@@ -108,9 +127,12 @@ export function Layout() {
                     to="/clothing/collections"
                     className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                     onClick={close}
+                    title="All Collections"
                   >
-                    <span className="nav-icon" aria-hidden="true">📚</span>
-                    All Collections
+                    <span className="nav-icon" aria-hidden="true">
+                      📚
+                    </span>
+                    <span className="nav-label">All Collections</span>
                   </NavLink>
                 </li>
               </ul>
@@ -129,9 +151,12 @@ export function Layout() {
                     end
                     className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                     onClick={close}
+                    title="Trade Helper"
                   >
-                    <span className="nav-icon" aria-hidden="true">🎯</span>
-                    Trade Helper
+                    <span className="nav-icon" aria-hidden="true">
+                      🎯
+                    </span>
+                    <span className="nav-label">Trade Helper</span>
                   </NavLink>
                 </li>
               </ul>
@@ -142,8 +167,8 @@ export function Layout() {
         <div className="sidebar-footer">
           Perfect launches without ads.
           <br />
-          <strong>{businesses.filter((b) => b.status === 'live').length}</strong> business live ·{' '}
-          more coming.
+          <strong>{businesses.filter((b) => b.status === 'live').length}</strong>{' '}
+          business live · more coming.
         </div>
       </aside>
 
