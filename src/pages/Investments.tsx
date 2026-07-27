@@ -115,7 +115,11 @@ function VerdictPanel({
         <div className="verdict-kicker">{asset.name}</div>
         <div className="verdict-action">{meta.label}</div>
         <p className="verdict-hint">{meta.hint}</p>
-        {tradeable && <span className="verdict-trade-hint">Tap to buy or sell</span>}
+        {tradeable && (
+          <span className="verdict-trade-hint">
+            Tap to open trade dialog (buy or sell shares)
+          </span>
+        )}
       </button>
 
       <div className="potential-hero">
@@ -394,30 +398,19 @@ export function Investments() {
     )
   }
 
-  /** Lock cost basis from the full price once the user leaves the field. */
+  /**
+   * Persist a complete price on blur. Only backfill a missing cost basis when
+   * shares are already held (legacy repair) — new positions get basis from BUY.
+   */
   const commitPriceBasis = () => {
     if (!selected) return
     const priceNum = parseUserNumber(priceInput)
     if (priceNum == null || priceNum <= 0) return
+    const sharesNum = parseUserNumber(sharesInput)
+    const holding = sharesNum != null && sharesNum > 0
     setEntries((prev) =>
       upsertEntry(prev, selected.kind, selected.id, priceInput, sharesInput, {
-        establishBasis: true,
-      }),
-    )
-  }
-
-  const setSharesForSelected = (value: string) => {
-    const next = sanitizeDecimalInput(value)
-    setSharesInput(next)
-    if (!selected) return
-    const sharesNum = parseUserNumber(next)
-    const priceNum = parseUserNumber(priceInput)
-    // Opening/holding a position with a complete price locks basis if missing.
-    const establishBasis =
-      sharesNum != null && sharesNum > 0 && priceNum != null && priceNum > 0
-    setEntries((prev) =>
-      upsertEntry(prev, selected.kind, selected.id, priceInput, next, {
-        establishBasis,
+        establishBasis: holding,
       }),
     )
   }
@@ -944,27 +937,19 @@ export function Investments() {
                 {priceError && <div className="field-error">{priceError}</div>}
               </div>
 
-              <div className="field">
-                <label className="field-label" htmlFor="shares">
-                  Number of shares <span className="opt-badge">Optional</span>
-                </label>
-                <input
-                  id="shares"
-                  className="input input-lg"
-                  type="text"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  disabled={!selected}
-                  placeholder="Leave blank if you don’t hold any"
-                  value={sharesInput}
-                  onChange={(e) => setSharesForSelected(e.target.value)}
-                  onFocus={selectAllOnFocus}
-                />
-                <div className="stat-hint" style={{ marginTop: '0.25rem' }}>
-                  Enter shares only if you already own the asset — that switches SELL vs HOLD when
-                  price is at or above average. Values are saved in this browser.
+              {selected && (
+                <div className="stat-card" style={{ margin: 0 }}>
+                  <div className="stat-label">Shares held</div>
+                  <div className="stat-value">
+                    {shares != null ? shares.toLocaleString() : '0'}
+                  </div>
+                  <div className="stat-hint" style={{ marginTop: '0.35rem' }}>
+                    {shares != null
+                      ? 'Use BUY / SELL on the verdict (or the owned table) to change this position. Average cost updates automatically.'
+                      : 'No position yet — enter a price, then tap BUY on the verdict to open shares via the trade dialog.'}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </section>
 
@@ -978,7 +963,7 @@ export function Investments() {
             ) : (
               <div className="empty-state">
                 {selected
-                  ? 'Enter a current price to see potential and BUY / HOLD / SELL.'
+                  ? 'Enter a current price to see potential and open the BUY / SELL dialog.'
                   : 'Select an asset to get started.'}
               </div>
             )}
@@ -987,6 +972,10 @@ export function Investments() {
           <section className="hint-box">
             <strong>How it works</strong>
             <ul className="mechanics-list" style={{ marginTop: '0.5rem' }}>
+              <li>
+                Enter the <strong>current price</strong>, then tap the verdict to{' '}
+                <strong>BUY</strong> or <strong>SELL</strong> shares in the trade dialog.
+              </li>
               <li>
                 <strong>Potential</strong> = (Max − Price) / Price — remaining upside to your tracked
                 max.
