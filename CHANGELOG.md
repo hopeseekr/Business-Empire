@@ -1,3 +1,14 @@
+## v1.2.0
+
+* **[2026-07-27 07:17:12 EEST]** Use coins wording for crypto in trade UI.
+* **[2026-07-27 07:16:58 EEST]** Make last price editable in the trade dialog.
+* **[2026-07-27 07:16:11 EEST]** Use mark-to-market value for total investment.
+* **[2026-07-27 06:31:42 EEST]** Copy share equivalent when switching from dollar mode.
+* **[2026-07-27 06:31:32 EEST]** Improve trade dialog conversion hint readability.
+* **[2026-07-27 05:40:09 EEST]** Require trade dialog for share changes.
+* **[2026-07-27 05:37:43 EEST]** Added Cost Basis calculation.
+* **[2026-07-27 05:35:03 EEST]** Fixes for First Price recording.
+
 ## v1.1.0
 
 * **[2026-07-27 04:48:17 EEST]** Track session realized P&L by market and ticker.
