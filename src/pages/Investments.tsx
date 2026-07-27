@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FocusEvent } from 'react'
+import { TradeDialog, formatShares } from '../components/TradeDialog'
 import {
   analyzeTrade,
   assetsFor,
@@ -76,20 +77,30 @@ function sanitizeDecimalInput(value: string): string {
 function VerdictPanel({
   asset,
   analysis,
+  onOpenTrade,
 }: {
   asset: InvestmentAsset
   analysis: TradeAnalysis
+  onOpenTrade?: () => void
 }) {
   const meta = actionMeta(analysis.action)
   const potPositive = analysis.potentialPct >= 0
+  const tradeable = Boolean(onOpenTrade)
 
   return (
     <div className="stack" style={{ gap: '1rem' }}>
-      <div className={`verdict-banner ${meta.className}`}>
+      <button
+        type="button"
+        className={`verdict-banner ${meta.className}${tradeable ? ' verdict-banner-clickable' : ''}`}
+        onClick={onOpenTrade}
+        disabled={!tradeable}
+        aria-label={`${meta.label} — open buy or sell dialog for ${asset.name}`}
+      >
         <div className="verdict-kicker">{asset.name}</div>
         <div className="verdict-action">{meta.label}</div>
         <p className="verdict-hint">{meta.hint}</p>
-      </div>
+        {tradeable && <span className="verdict-trade-hint">Tap to buy or sell</span>}
+      </button>
 
       <div className="potential-hero">
         <div className="potential-label">Potential remaining</div>
@@ -208,6 +219,7 @@ export function Investments() {
   })
   const [focusedAsset, setFocusedAsset] = useState<string | null>(null)
   const [focusPriceRequest, setFocusPriceRequest] = useState(0)
+  const [tradePosition, setTradePosition] = useState<OwnedRow | null>(null)
   const priceInputRef = useRef<HTMLInputElement>(null)
 
   const matches = useMemo(() => searchAssets(kind, query).slice(0, 40), [kind, query])
@@ -306,6 +318,63 @@ export function Investments() {
     setEntries((prev) =>
       upsertEntry(prev, selected.kind, selected.id, priceInput, next),
     )
+  }
+
+  /** Apply a buy/sell to storage and keep the trade helper in sync when that asset is selected. */
+  const applyShareDelta = (asset: InvestmentAsset, price: number, nextShares: number) => {
+    const priceStr = String(price)
+    const sharesStr = nextShares > 1e-12 ? formatShares(nextShares) : ''
+    setEntries((prev) => upsertEntry(prev, asset.kind, asset.id, priceStr, sharesStr))
+    setSelectedIds((prev) => ({ ...prev, [asset.kind]: asset.id }))
+    setSelected(asset)
+    setPriceInput(priceStr)
+    setSharesInput(sharesStr)
+  }
+
+  const handleTradeBuy = (sharesToBuy: number) => {
+    if (!tradePosition || !(sharesToBuy > 0)) return
+    const next = tradePosition.shares + sharesToBuy
+    applyShareDelta(tradePosition.asset, tradePosition.price, next)
+    setTradePosition(null)
+  }
+
+  const handleTradeSell = (sharesToSell: number) => {
+    if (!tradePosition || !(sharesToSell > 0)) return
+    const next = Math.max(0, tradePosition.shares - sharesToSell)
+    applyShareDelta(tradePosition.asset, tradePosition.price, next)
+    setTradePosition(null)
+  }
+
+  /** Build a trade dialog position from the live trade-helper selection. */
+  const openTradeFromVerdict = () => {
+    if (!selected) return
+    const priceVal = parseUserNumber(priceInput)
+    if (priceVal == null || priceVal <= 0) return
+
+    const sharesVal = parseUserNumber(sharesInput)
+    const held = sharesVal != null && sharesVal > 0 ? sharesVal : 0
+    const entry = getStoredEntry(entries, selected.kind, selected.id)
+    const firstRaw = resolveFirstPrice(entry)
+    const firstParsed = firstRaw ? parseUserNumber(firstRaw) : null
+    const firstPriceVal =
+      firstParsed != null && firstParsed > 0 ? firstParsed : priceVal
+
+    const live = analyzeTrade(selected, priceVal, held > 0 ? held : null)
+    setTradePosition({
+      asset: selected,
+      price: priceVal,
+      firstPrice: firstPriceVal,
+      shares: held,
+      totalInvestment: held > 0 ? priceVal * held : 0,
+      gainLoss: held > 0 ? (priceVal - firstPriceVal) * held : 0,
+      gainLossPct:
+        held > 0 && firstPriceVal > 0
+          ? ((priceVal - firstPriceVal) / firstPriceVal) * 100
+          : 0,
+      maxPotential: held > 0 ? (selected.max - priceVal) * held : 0,
+      potentialPct: live.potentialPct,
+      action: live.action,
+    })
   }
 
   const selectAllOnFocus = (e: FocusEvent<HTMLInputElement>) => {
@@ -418,7 +487,18 @@ export function Investments() {
                         <span className="pot-pct">({formatPct(row.potentialPct)})</span>
                       </td>
                       <td>
-                        <span className={`action-chip ${actionClass}`}>{row.action}</span>
+                        <button
+                          type="button"
+                          className={`action-chip action-chip-btn ${actionClass}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setTradePosition(row)
+                          }}
+                          title={`Trade ${row.asset.name}`}
+                          aria-label={`Open buy or sell dialog for ${row.asset.name}, signal ${row.action}`}
+                        >
+                          {row.action}
+                        </button>
                       </td>
                     </tr>
                   )
@@ -427,6 +507,15 @@ export function Investments() {
             </table>
           </div>
         </section>
+      )}
+
+      {tradePosition && (
+        <TradeDialog
+          position={tradePosition}
+          onClose={() => setTradePosition(null)}
+          onBuy={handleTradeBuy}
+          onSell={handleTradeSell}
+        />
       )}
 
       <div className="grid-2 invest-layout">
@@ -592,7 +681,11 @@ export function Investments() {
 
           <section className="card">
             {analysis ? (
-              <VerdictPanel asset={selected!} analysis={analysis} />
+              <VerdictPanel
+                asset={selected!}
+                analysis={analysis}
+                onOpenTrade={openTradeFromVerdict}
+              />
             ) : (
               <div className="empty-state">
                 {selected
