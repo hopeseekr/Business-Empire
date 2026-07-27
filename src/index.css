@@ -1248,6 +1248,85 @@ button.verdict-banner-clickable:focus-visible {
   color: var(--text-muted);
 }
 
+.session-pnl-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.session-pnl-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.session-pnl-backup-status {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.session-pnl-import {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.6rem 0.65rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.session-pnl-import-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.session-pnl-import-hint code {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.session-pnl-import-text {
+  resize: vertical;
+  min-height: 7rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.session-pnl-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.session-pnl-actions .btn.active {
+  border-color: rgba(100, 181, 246, 0.55);
+  color: var(--text);
+  background: rgba(100, 181, 246, 0.1);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .session-pnl-buckets {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

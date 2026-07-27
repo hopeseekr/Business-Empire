@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FocusEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent } from 'react'
 import { TradeDialog, formatShares, unitWord } from '../components/TradeDialog'
 import {
   analyzeTrade,
@@ -21,8 +21,15 @@ import {
   resolveStoredAsset,
   saveInvestmentPrefs,
   upsertEntry,
+  type InvestmentPrefs,
   type StoredAssetEntry,
 } from '../data/investmentStorage'
+import {
+  downloadPortfolioBackup,
+  parsePortfolioBackup,
+  readBackupFile,
+  type ImportResult,
+} from '../data/portfolioBackup'
 import {
   formatSignedMoney,
   getAssetRealized,
@@ -248,7 +255,12 @@ export function Investments() {
   const [focusPriceRequest, setFocusPriceRequest] = useState(0)
   const [tradePosition, setTradePosition] = useState<OwnedRow | null>(null)
   const [realizedPnl, setRealizedPnl] = useState<RealizedPnlState>(() => loadRealizedPnl())
+  const [backupStatus, setBackupStatus] = useState<string | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importText, setImportText] = useState('')
   const priceInputRef = useRef<HTMLInputElement>(null)
+  const importInputRef = useRef<HTMLInputElement>(null)
+  const importTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const matches = useMemo(() => searchAssets(kind, query).slice(0, 40), [kind, query])
 
@@ -585,6 +597,114 @@ export function Investments() {
     e.currentTarget.select()
   }
 
+  const applyImportedPrefs = (prefs: InvestmentPrefs) => {
+    setKind(prefs.kind)
+    setSelectedIds(prefs.selectedIds)
+    setEntries(prefs.entries)
+    const nextSelected = resolveStoredAsset(prefs.kind, prefs.selectedIds[prefs.kind])
+    setSelected(nextSelected)
+    const fields = applyEntry(nextSelected, prefs.entries)
+    setPriceInput(fields.price)
+    setSharesInput(fields.shares)
+    setQuery('')
+    setTradePosition(null)
+    setFocusedAsset(null)
+    saveInvestmentPrefs(prefs)
+  }
+
+  const handleExport = () => {
+    downloadPortfolioBackup(
+      {
+        version: 2,
+        kind,
+        selectedIds,
+        entries,
+      },
+      realizedPnl,
+    )
+    setBackupStatus('Exported portfolio JSON (positions + realized P&L).')
+  }
+
+  const applyImportResult = (result: ImportResult): boolean => {
+    if (!result.ok) {
+      setBackupStatus(`Import failed: ${result.error}`)
+      return false
+    }
+
+    if (result.mode === 'full') {
+      const ok = window.confirm(
+        'Import will replace your current portfolio data (positions, selections, and realized P&L). Continue?',
+      )
+      if (!ok) {
+        setBackupStatus('Import cancelled.')
+        return false
+      }
+      applyImportedPrefs(result.investments)
+      setRealizedPnl(result.realizedPnl)
+      saveRealizedPnl(result.realizedPnl)
+      const n = Object.keys(result.investments.entries).length
+      setBackupStatus(`Imported full backup (${n} position${n === 1 ? '' : 's'} + realized P&L).`)
+      setImportOpen(false)
+      setImportText('')
+      return true
+    }
+
+    const ok = window.confirm(
+      'Import will replace your current realized P&L totals (positions unchanged). Continue?',
+    )
+    if (!ok) {
+      setBackupStatus('Import cancelled.')
+      return false
+    }
+    setRealizedPnl(result.realizedPnl)
+    saveRealizedPnl(result.realizedPnl)
+    const tickers = Object.keys(result.realizedPnl.byAsset).length
+    setBackupStatus(
+      `Imported realized P&L only (${tickers} ticker${tickers === 1 ? '' : 's'}).`,
+    )
+    setImportOpen(false)
+    setImportText('')
+    return true
+  }
+
+  const handleImportToggle = () => {
+    setImportOpen((open) => {
+      const next = !open
+      if (next) {
+        // Focus paste field after panel mounts.
+        queueMicrotask(() => importTextareaRef.current?.focus())
+      }
+      return next
+    })
+    setBackupStatus(null)
+  }
+
+  const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    // Allow re-importing the same file later.
+    e.target.value = ''
+    if (!file) return
+
+    const result = await readBackupFile(file)
+    applyImportResult(result)
+  }
+
+  const handleImportPaste = () => {
+    const trimmed = importText.trim()
+    if (!trimmed) {
+      setBackupStatus('Import failed: paste JSON first (full backup or realized P&L).')
+      return
+    }
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(trimmed) as unknown
+    } catch {
+      setBackupStatus('Import failed: pasted text is not valid JSON.')
+      return
+    }
+    applyImportResult(parsePortfolioBackup(parsed))
+  }
+
   const price = parseUserNumber(priceInput)
   const sharesParsed = parseUserNumber(sharesInput)
   const shares = sharesParsed != null && sharesParsed > 0 ? sharesParsed : null
@@ -638,8 +758,81 @@ export function Investments() {
           <h3 className="section-title" style={{ margin: 0 }}>
             Realized P&amp;L
           </h3>
-          <span className="results-count spacer">localStorage · persists</span>
+          <div className="session-pnl-toolbar spacer">
+            <span className="results-count">localStorage · persists</span>
+            <div className="session-pnl-actions">
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={handleExport}
+                title="Download positions + realized P&L as JSON"
+              >
+                Export
+              </button>
+              <button
+                type="button"
+                className={`btn btn-ghost btn-sm${importOpen ? ' active' : ''}`}
+                onClick={handleImportToggle}
+                aria-expanded={importOpen}
+                title="Paste realized P&L JSON or choose a backup file"
+              >
+                Import
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json,text/plain"
+                className="visually-hidden"
+                aria-label="Import portfolio backup JSON file"
+                onChange={handleImportFile}
+              />
+            </div>
+          </div>
         </div>
+        {importOpen && (
+          <div className="session-pnl-import" aria-label="Import portfolio or realized P&L">
+            <p className="session-pnl-import-hint">
+              Paste a full Export backup, or bare realized P&L JSON
+              (<code>version</code> / <code>byKind</code> / <code>byAsset</code>).
+            </p>
+            <textarea
+              ref={importTextareaRef}
+              className="input session-pnl-import-text"
+              rows={8}
+              spellCheck={false}
+              placeholder='{"version":1,"byKind":{...},"byAsset":{...}}'
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+            />
+            <div className="session-pnl-import-actions">
+              <button type="button" className="btn btn-primary btn-sm" onClick={handleImportPaste}>
+                Apply paste
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => importInputRef.current?.click()}
+              >
+                Choose file…
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setImportOpen(false)
+                  setImportText('')
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        {backupStatus && (
+          <p className="session-pnl-backup-status" role="status">
+            {backupStatus}
+          </p>
+        )}
         <div className="session-pnl-buckets">
           <div className={`session-pnl-bucket ${kind === 'stock' ? 'active' : ''}`}>
             <span className="session-pnl-label">Stocks</span>
