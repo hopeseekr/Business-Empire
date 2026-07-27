@@ -12,6 +12,9 @@ import {
 } from '../data/investments'
 import {
   assetStorageKey,
+  averageCostAfterBuy,
+  averageCostAfterSell,
+  formatCostBasis,
   getStoredEntry,
   loadInvestmentPrefs,
   resolveFirstPrice,
@@ -304,7 +307,8 @@ export function Investments() {
       }
 
       const analysis = analyzeTrade(asset, livePrice, shares)
-      const totalInvestment = analysis.positionValue ?? livePrice * shares
+      // Capital at risk = average cost × shares (not mark-to-market value).
+      const totalInvestment = basis * shares
       const gainLoss = (livePrice - basis) * shares
       const gainLossPct = ((livePrice - basis) / basis) * 100
 
@@ -418,14 +422,26 @@ export function Investments() {
     )
   }
 
-  /** Apply a buy/sell to storage and keep the trade helper in sync when that asset is selected. */
-  const applyShareDelta = (asset: InvestmentAsset, price: number, nextShares: number) => {
+  /**
+   * Apply a buy/sell to storage with explicit average-cost basis.
+   * - Buy: weighted average of prior cost and this fill
+   * - Partial sell: per-share basis unchanged
+   * - Full exit: clear basis (next open starts fresh)
+   */
+  const applyShareDelta = (
+    asset: InvestmentAsset,
+    price: number,
+    nextShares: number,
+    costBasis: number | null,
+  ) => {
     const priceStr = String(price)
     const sharesStr = nextShares > 1e-12 ? formatShares(nextShares) : ''
+    const basisOpt =
+      costBasis != null && costBasis > 0
+        ? { costBasis: formatCostBasis(costBasis) }
+        : { costBasis: null as string | null }
     setEntries((prev) =>
-      upsertEntry(prev, asset.kind, asset.id, priceStr, sharesStr, {
-        establishBasis: nextShares > 1e-12,
-      }),
+      upsertEntry(prev, asset.kind, asset.id, priceStr, sharesStr, basisOpt),
     )
     setSelectedIds((prev) => ({ ...prev, [asset.kind]: asset.id }))
     setSelected(asset)
@@ -435,8 +451,16 @@ export function Investments() {
 
   const handleTradeBuy = (sharesToBuy: number) => {
     if (!tradePosition || !(sharesToBuy > 0)) return
-    const next = tradePosition.shares + sharesToBuy
-    applyShareDelta(tradePosition.asset, tradePosition.price, next)
+    const held = tradePosition.shares
+    const buyPrice = tradePosition.price
+    const next = held + sharesToBuy
+    const newBasis = averageCostAfterBuy(
+      held,
+      tradePosition.firstPrice,
+      sharesToBuy,
+      buyPrice,
+    )
+    applyShareDelta(tradePosition.asset, buyPrice, next, newBasis)
     setTradePosition(null)
   }
 
@@ -445,6 +469,9 @@ export function Investments() {
     const sold = Math.min(sharesToSell, tradePosition.shares)
     if (!(sold > 0)) return
 
+    const basisPerShare =
+      tradePosition.firstPrice > 0 ? tradePosition.firstPrice : tradePosition.price
+
     setRealizedPnl((prev) =>
       recordRealizedSell(
         prev,
@@ -452,13 +479,18 @@ export function Investments() {
         tradePosition.asset.id,
         tradePosition.asset.name,
         tradePosition.price,
-        tradePosition.firstPrice,
+        basisPerShare,
         sold,
       ),
     )
 
     const next = Math.max(0, tradePosition.shares - sold)
-    applyShareDelta(tradePosition.asset, tradePosition.price, next)
+    const remainingBasis = averageCostAfterSell(
+      tradePosition.shares,
+      basisPerShare,
+      sold,
+    )
+    applyShareDelta(tradePosition.asset, tradePosition.price, next, remainingBasis)
     setTradePosition(null)
   }
 
@@ -484,7 +516,7 @@ export function Investments() {
       firstPrice: firstPriceVal,
       shares: held,
       metricsReady: held > 0,
-      totalInvestment: held > 0 ? priceVal * held : 0,
+      totalInvestment: held > 0 ? firstPriceVal * held : 0,
       gainLoss: held > 0 ? (priceVal - firstPriceVal) * held : 0,
       gainLossPct:
         held > 0 && firstPriceVal > 0

@@ -18,8 +18,9 @@ export interface StoredAssetEntry {
   price: string
   shares: string
   /**
-   * First valid price ever recorded for this asset (cost basis).
-   * Set once and never overwritten by later price edits.
+   * Average cost basis per share for this position.
+   * Not overwritten by live price edits; updated by trades (weighted buy,
+   * unchanged on partial sell, cleared on full exit).
    */
   firstPrice?: string
 }
@@ -106,46 +107,66 @@ function canonicalPriceString(raw: string | undefined): string | undefined {
 }
 
 /**
- * True when `basis` looks like a digit-by-digit typing lock of `fullPrice`
- * (e.g. firstPrice "9" or "939." while price is "939.74") rather than a real cost basis.
- */
-export function isKeystrokeBasisArtifact(basis: string, fullPrice: string): boolean {
-  const b = basis.trim()
-  const f = fullPrice.trim()
-  if (!b || !f || b === f) return false
-  // Trailing decimal is always incomplete — check before startsWith
-  // ( "939." is not a prefix of "963.02" but is still corrupt ).
-  if (b.endsWith('.')) return true
-  if (!f.startsWith(b)) return false
-  // Classic bug locks on the first 1–2 keystrokes while the committed price is longer.
-  // Avoid treating real moves like $9 → $90 as artifacts (full price only +1 char).
-  if (b.length <= 2 && f.length >= b.length + 2) return true
-  // Longer partial locks: "939" while typing "939.74" (integer prefix before fraction).
-  if (!b.includes('.') && f.length > b.length && /^[\d.]/.test(f.slice(b.length))) {
-    const bNum = parseUserNumber(b)
-    const fNum = parseUserNumber(f)
-    if (bNum != null && fNum != null && fNum / bNum < 1.5) return true
-  }
-  return false
-}
-
-/**
- * Cost basis for an entry, repairing incomplete / keystroke-lock firstPrice values.
- * "939." → "939" (strip dangling dot); "9" vs live "939.74" → live when clearly partial.
+ * Cost basis for an entry.
+ * Prefers an explicit firstPrice (average-cost basis from trades) over live price.
+ * Does not rewrite basis just because live price moved (e.g. basis $10, live $10.50).
+ * Trades update basis via upsertEntry `costBasis`; establishBasis only locks when missing.
  */
 export function resolveFirstPrice(entry: StoredAssetEntry): string | undefined {
-  const live = canonicalPriceString(entry.price)
   // Normalize "939." → "939" rather than throwing away the intended ~$939 basis.
   const explicit = canonicalPriceString(entry.firstPrice)
-
-  if (explicit && live && isKeystrokeBasisArtifact(explicit, live)) return live
-  // Raw firstPrice still had a dangling dot but stripped form is usable.
   if (explicit) return explicit
+  const live = canonicalPriceString(entry.price)
   if (live) return live
   return undefined
 }
 
-/** Normalize a stored entry (repair bad firstPrice; never persist "939."). */
+/**
+ * Format a numeric cost basis for storage (trim float noise, keep usable precision).
+ */
+export function formatCostBasis(n: number): string {
+  if (!Number.isFinite(n) || !(n > 0)) return ''
+  if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n))
+  return n.toFixed(8).replace(/\.?0+$/, '')
+}
+
+/**
+ * Average cost per share after buying more (average-cost method).
+ * Opening a position (no prior shares / basis) → buyPrice.
+ */
+export function averageCostAfterBuy(
+  heldShares: number,
+  costBasisPerShare: number,
+  buyShares: number,
+  buyPrice: number,
+): number {
+  if (!(buyShares > 0) || !(buyPrice > 0)) {
+    return costBasisPerShare > 0 ? costBasisPerShare : buyPrice
+  }
+  if (!(heldShares > 0) || !(costBasisPerShare > 0)) {
+    return buyPrice
+  }
+  return (heldShares * costBasisPerShare + buyShares * buyPrice) / (heldShares + buyShares)
+}
+
+/**
+ * Cost basis after selling under the average-cost method.
+ * Partial sell: per-share basis unchanged. Full exit: null (clear basis).
+ */
+export function averageCostAfterSell(
+  heldShares: number,
+  costBasisPerShare: number,
+  sellShares: number,
+): number | null {
+  if (!(sellShares > 0)) {
+    return costBasisPerShare > 0 ? costBasisPerShare : null
+  }
+  const remaining = heldShares - sellShares
+  if (!(remaining > 1e-12)) return null
+  return costBasisPerShare > 0 ? costBasisPerShare : null
+}
+
+/** Normalize a stored entry (repair dangling-decimal firstPrice; never invent from keystrokes). */
 export function sanitizeStoredEntry(value: StoredAssetEntry): StoredAssetEntry {
   const basis = resolveFirstPrice(value)
   return {
@@ -388,19 +409,29 @@ export function getStoredEntry(
 export interface UpsertEntryOptions {
   /**
    * When true, lock cost basis from the new price if no basis exists yet.
-   * Callers should only set this on commit (price blur, buy, or shares becoming held) —
+   * Callers should only set this on commit (price blur, or shares becoming held) —
    * never on every keystroke, or the first typed digit becomes permanent basis.
+   * Ignored when `costBasis` is provided (trade accounting owns the basis).
    */
   establishBasis?: boolean
+  /**
+   * Explicit average-cost basis from a trade.
+   * - string: set / overwrite cost basis (weighted buy, or unchanged after partial sell)
+   * - null: clear cost basis (full exit)
+   * When set, wins over establishBasis and the previous firstPrice.
+   */
+  costBasis?: string | null
 }
 
 /**
  * Update or remove an entry in the in-memory map.
  * Empty price+shares deletes the map key (and should be followed by persist).
- * firstPrice (cost basis) is permanent once set; it is never overwritten and never
- * dropped when the live price is cleared/zeroed. New basis is only taken from the
- * live price when `establishBasis` is set (or when clearing a valid price that had
- * no basis yet — snapshot so a blank+retype cannot lock the first keystroke).
+ *
+ * Cost basis (firstPrice) rules:
+ * - Trade paths pass `costBasis` to set a weighted average or clear on full exit.
+ * - Otherwise basis is sticky: not overwritten by live price edits, and not dropped
+ *   when price is cleared/zeroed.
+ * - `establishBasis` only locks from live price when missing / keystroke-corrupt.
  */
 export function upsertEntry(
   entries: Record<string, StoredAssetEntry>,
@@ -421,8 +452,21 @@ export function upsertEntry(
   const prev = entries[key]
   const priceForBasis = canonicalPriceString(price)
 
-  // 1) Keep / repair basis from previous entry only.
-  //    Do not rewrite basis from the live price on every keystroke (that froze "939.").
+  // Explicit trade basis always wins (including clear on full exit).
+  if (options && 'costBasis' in options && options.costBasis !== undefined) {
+    const tradeBasis =
+      options.costBasis === null ? undefined : canonicalPriceString(options.costBasis)
+    return {
+      ...entries,
+      [key]: {
+        price,
+        shares,
+        ...(tradeBasis ? { firstPrice: tradeBasis } : {}),
+      },
+    }
+  }
+
+  // 1) Keep basis from previous entry only (do not pull live price into basis on keystrokes).
   let firstPrice: string | undefined
   if (prev) {
     firstPrice = resolveFirstPrice({
@@ -438,15 +482,13 @@ export function upsertEntry(
     if (prevLive && !priceForBasis) firstPrice = prevLive
   }
 
-  // 3) Commit only (blur / buy / open position): lock or repair from full price.
-  if (options?.establishBasis && priceForBasis) {
-    if (
-      !firstPrice ||
-      firstPrice.endsWith('.') ||
-      isKeystrokeBasisArtifact(firstPrice, priceForBasis)
-    ) {
-      firstPrice = priceForBasis
-    }
+  // 3) Commit only (blur / open position): lock basis from full price when missing.
+  //    Never overwrite an existing complete basis with live price — that would destroy
+  //    average-cost after buys (e.g. basis $10 while live is $100) and treat short
+  //    bases as keystroke artifacts. Trades pass `costBasis` to update explicitly.
+  //    Incomplete "939." is already normalized by canonicalPriceString above.
+  if (options?.establishBasis && priceForBasis && !firstPrice) {
+    firstPrice = priceForBasis
   }
 
   // Never persist dangling-decimal basis.

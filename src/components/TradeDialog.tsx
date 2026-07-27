@@ -210,7 +210,7 @@ export function TradeDialog({
         <section className="trade-ticker-record" aria-label="Recorded ticker data">
           <div className="trade-record-grid">
             <div>
-              <span className="trade-record-label">First price</span>
+              <span className="trade-record-label">Cost basis</span>
               <span className="trade-record-value">{formatMoney(position.firstPrice)}</span>
             </div>
             <div>
