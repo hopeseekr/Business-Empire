@@ -19,6 +19,7 @@ export interface TradePosition {
 type AmountMode = 'shares' | 'dollars'
 type DialogStep = 'edit' | 'sell-confirm'
 
+
 function sanitizeDecimalInput(value: string): string {
   let result = ''
   let hasDecimal = false
@@ -53,17 +54,24 @@ function selectAllOnFocus(e: FocusEvent<HTMLInputElement>) {
 
 export function TradeDialog({
   position,
+  priceText,
   sessionRealized = 0,
   onClose,
   onBuy,
   onSell,
+  onPriceChange,
+  onPriceBlur,
 }: {
   position: TradePosition
+  /** Editable last/current price string — same value as the main Trade helper field. */
+  priceText: string
   /** Cumulative realized P&L for this ticker in the current browser tab session. */
   sessionRealized?: number
   onClose: () => void
   onBuy: (shares: number) => void
   onSell: (shares: number) => void
+  onPriceChange: (value: string) => void
+  onPriceBlur?: () => void
 }) {
   const titleId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -73,7 +81,13 @@ export function TradeDialog({
   const [pendingSellShares, setPendingSellShares] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const { asset, price, shares: held } = position
+  const { asset, shares: held } = position
+
+  /** Live price from the editable field (drives conversions + fills). */
+  const price = useMemo(() => {
+    const n = parseUserNumber(priceText)
+    return n != null && n > 0 ? n : 0
+  }, [priceText])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -104,12 +118,13 @@ export function TradeDialog({
     const n = parseUserNumber(amount)
     if (n == null || n <= 0) return null
     if (mode === 'shares') return n
+    if (!(price > 0)) return null
     // dollars → shares at last entered price
     return n / price
   }, [amount, mode, price])
 
   const resolvedCost = useMemo(() => {
-    if (resolvedShares == null) return null
+    if (resolvedShares == null || !(price > 0)) return null
     return resolvedShares * price
   }, [resolvedShares, price])
 
@@ -142,8 +157,16 @@ export function TradeDialog({
 
   const requestBuy = () => {
     setError(null)
+    if (!(price > 0)) {
+      setError('Enter a valid last price greater than 0.')
+      return
+    }
     if (resolvedShares == null || resolvedShares <= 0) {
-      setError(mode === 'shares' ? 'Enter how many shares to buy.' : 'Enter a dollar amount to buy.')
+      setError(
+        mode === 'shares'
+          ? 'Enter how many shares to buy.'
+          : 'Enter a dollar amount to buy.',
+      )
       return
     }
     onBuy(resolvedShares)
@@ -151,12 +174,20 @@ export function TradeDialog({
 
   const requestSell = () => {
     setError(null)
+    if (!(price > 0)) {
+      setError('Enter a valid last price greater than 0.')
+      return
+    }
     if (held <= 0) {
       setError('You have no shares to sell.')
       return
     }
     if (resolvedShares == null || resolvedShares <= 0) {
-      setError(mode === 'shares' ? 'Enter how many shares to sell.' : 'Enter a dollar amount to sell.')
+      setError(
+        mode === 'shares'
+          ? 'Enter how many shares to sell.'
+          : 'Enter a dollar amount to sell.',
+      )
       return
     }
 
@@ -215,7 +246,9 @@ export function TradeDialog({
           <h2 id={titleId} className="trade-dialog-title">
             {asset.name}
           </h2>
-          <p className="trade-dialog-sub">Buy / Sell · last price {formatMoney(price)}</p>
+          <p className="trade-dialog-sub">
+            Buy / Sell · last price {price > 0 ? formatMoney(price) : '—'}
+          </p>
         </header>
 
         <section className="trade-ticker-record" aria-label="Recorded ticker data">
@@ -225,8 +258,25 @@ export function TradeDialog({
               <span className="trade-record-value">{formatMoney(position.firstPrice)}</span>
             </div>
             <div>
-              <span className="trade-record-label">Last price</span>
-              <span className="trade-record-value">{formatMoney(position.price)}</span>
+              <label className="trade-record-label" htmlFor="trade-last-price">
+                Last price
+              </label>
+              <input
+                id="trade-last-price"
+                className="input trade-price-input"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="e.g. 1247.85"
+                value={priceText}
+                onChange={(e) => {
+                  onPriceChange(sanitizeDecimalInput(e.target.value))
+                  setError(null)
+                }}
+                onFocus={selectAllOnFocus}
+                onBlur={onPriceBlur}
+                aria-label="Last price"
+              />
             </div>
             <div>
               <span className="trade-record-label">Shares held</span>
@@ -380,7 +430,8 @@ export function TradeDialog({
             <p className="trade-confirm-body">
               Sell exactly{' '}
               <strong className="pot-down">{formatShares(pendingSellShares ?? 0)}</strong> shares
-              of <strong>{asset.name}</strong> at <strong>{formatMoney(price)}</strong>.
+              of <strong>{asset.name}</strong> at{' '}
+              <strong>{price > 0 ? formatMoney(price) : '—'}</strong>.
             </p>
             <ul className="trade-confirm-list">
               <li>
@@ -389,7 +440,11 @@ export function TradeDialog({
               </li>
               <li>
                 Proceeds ≈{' '}
-                <strong>{formatMoney((pendingSellShares ?? 0) * price)}</strong>
+                <strong>
+                  {price > 0
+                    ? formatMoney((pendingSellShares ?? 0) * price)
+                    : '—'}
+                </strong>
               </li>
               <li>
                 Shares remaining:{' '}

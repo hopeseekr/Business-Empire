@@ -416,6 +416,59 @@ export function Investments() {
   }
 
   /**
+   * Edit last price from the trade dialog — same string as the main Current price
+   * field, plus live metrics on the open dialog position.
+   */
+  const handleTradePriceChange = (value: string) => {
+    if (!tradePosition) return
+    const asset = tradePosition.asset
+    const next = sanitizeDecimalInput(value)
+    const entry = getStoredEntry(entries, asset.kind, asset.id)
+    const sharesStr = entry.shares
+
+    setSelected(asset)
+    setSelectedIds((prev) => ({ ...prev, [asset.kind]: asset.id }))
+    setPriceInput(next)
+    setSharesInput(sharesStr)
+    setEntries((prev) => upsertEntry(prev, asset.kind, asset.id, next, sharesStr))
+
+    const priceVal = parseUserNumber(next)
+    setTradePosition((prev) => {
+      if (!prev) return null
+      const held = prev.shares
+      const basis = prev.firstPrice
+      if (priceVal == null || priceVal <= 0) {
+        return {
+          ...prev,
+          price: 0,
+          priceValid: false,
+          metricsReady: false,
+          totalInvestment: held > 0 && basis > 0 ? basis * held : 0,
+          gainLoss: 0,
+          gainLossPct: 0,
+          maxPotential: 0,
+          potentialPct: 0,
+          action: 'HOLD',
+        }
+      }
+      const analysis = analyzeTrade(asset, priceVal, held > 0 ? held : null)
+      return {
+        ...prev,
+        price: priceVal,
+        priceValid: true,
+        metricsReady: held > 0,
+        totalInvestment: held > 0 ? priceVal * held : 0,
+        gainLoss: held > 0 ? (priceVal - basis) * held : 0,
+        gainLossPct:
+          held > 0 && basis > 0 ? ((priceVal - basis) / basis) * 100 : 0,
+        maxPotential: held > 0 ? (asset.max - priceVal) * held : 0,
+        potentialPct: analysis.potentialPct,
+        action: analysis.action,
+      }
+    })
+  }
+
+  /**
    * Apply a buy/sell to storage with explicit average-cost basis.
    * - Buy: weighted average of prior cost and this fill
    * - Partial sell: per-share basis unchanged
@@ -760,6 +813,8 @@ export function Investments() {
                           onClick={(e) => {
                             e.stopPropagation()
                             if (!row.priceValid) return
+                            // Select so main Current price field stays in sync with the dialog.
+                            selectAsset(row.asset)
                             setTradePosition(row)
                           }}
                           disabled={!row.priceValid}
@@ -789,6 +844,7 @@ export function Investments() {
       {tradePosition && (
         <TradeDialog
           position={tradePosition}
+          priceText={priceInput}
           sessionRealized={
             getAssetRealized(realizedPnl, tradePosition.asset.kind, tradePosition.asset.id)
               ?.realized ?? 0
@@ -796,6 +852,8 @@ export function Investments() {
           onClose={() => setTradePosition(null)}
           onBuy={handleTradeBuy}
           onSell={handleTradeSell}
+          onPriceChange={handleTradePriceChange}
+          onPriceBlur={commitPriceBasis}
         />
       )}
 
