@@ -208,12 +208,14 @@ export function Investments() {
     <div className="stack">
       <section className="hero-banner">
         <h1><span aria-hidden="true">📈</span> Investments</h1>
+{/*
         <p>
           Plug in the in-game <strong style={{ color: 'var(--text)' }}>current price</strong> (and
           optionally how many shares you hold). The app computes remaining upside to your tracked
           max and recommends <strong style={{ color: 'var(--text)' }}>BUY / HOLD / SELL</strong> —
           the same rules as your multi-year spreadsheet.
         </p>
+*/}
         <div className="segmented" role="tablist" aria-label="Asset type">
           <button
             type="button"
