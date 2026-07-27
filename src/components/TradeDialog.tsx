@@ -76,7 +76,7 @@ export function TradeDialog({
   position: TradePosition
   /** Editable last/current price string — same value as the main Trade helper field. */
   priceText: string
-  /** Cumulative realized P&L for this ticker in the current browser tab session. */
+  /** Cumulative realized P&L for this ticker (localStorage). */
   sessionRealized?: number
   onClose: () => void
   onBuy: (shares: number) => void
@@ -311,7 +311,7 @@ export function TradeDialog({
               </span>
             </div>
             <div>
-              <span className="trade-record-label">Session realized</span>
+              <span className="trade-record-label">Realized P&amp;L</span>
               <span
                 className={`trade-record-value ${
                   sessionRealized > 0 ? 'pot-up' : sessionRealized < 0 ? 'pot-down' : ''

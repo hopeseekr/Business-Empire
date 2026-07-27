@@ -354,7 +354,7 @@ export function Investments() {
     })
   }, [kind, selectedIds, entries])
 
-  // Session realized P&L (tab-scoped).
+  // Realized P&L (localStorage — persists across tabs/restarts).
   useEffect(() => {
     saveRealizedPnl(realizedPnl)
   }, [realizedPnl])
@@ -633,12 +633,12 @@ export function Investments() {
         </div>
       </section>
 
-      <section className="card session-pnl" aria-label="Session realized gains and losses">
+      <section className="card session-pnl" aria-label="Realized gains and losses">
         <div className="row session-pnl-header">
           <h3 className="section-title" style={{ margin: 0 }}>
-            Session realized P&amp;L
+            Realized P&amp;L
           </h3>
-          <span className="results-count spacer">sessionStorage · this tab</span>
+          <span className="results-count spacer">localStorage · persists</span>
         </div>
         <div className="session-pnl-buckets">
           <div className={`session-pnl-bucket ${kind === 'stock' ? 'active' : ''}`}>
@@ -687,7 +687,7 @@ export function Investments() {
         {sessionAssetHits.length > 0 && (
           <div className="session-pnl-assets">
             <div className="session-pnl-assets-label">
-              {kind === 'stock' ? 'Stock' : 'Crypto'} tickers this session
+              {kind === 'stock' ? 'Stock' : 'Crypto'} tickers with sells
               {sessionOtherTotal !== 0 && (
                 <span className="session-pnl-other">
                   {' '}
@@ -717,7 +717,7 @@ export function Investments() {
         {sessionAssetHits.length === 0 && sessionKindTotal === 0 && (
           <p className="session-pnl-empty">
             Realized gains and losses post when you <strong>SELL</strong> via the trade dialog.
-            Totals reset when this browser tab closes.
+            Totals persist in localStorage across tabs and browser restarts.
           </p>
         )}
       </section>

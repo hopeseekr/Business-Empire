@@ -1,20 +1,20 @@
 import type { InvestmentKind } from '../types'
 import { assetStorageKey } from './investmentStorage'
 
-/** Browser-tab session only (clears when the tab closes). */
+/** Persists across tabs and browser restarts (localStorage). */
 const STORAGE_KEY = 'business-empire.realized-pnl.v1'
 
 export interface AssetRealizedPnl {
-  /** Cumulative realized $ P&L for this asset in the session. */
+  /** Cumulative realized $ P&L for this asset. */
   realized: number
-  /** Number of sell lots recorded this session. */
+  /** Number of sell lots recorded. */
   sellCount: number
   name: string
 }
 
 export interface RealizedPnlState {
   version: 1
-  /** Session totals by market bucket. */
+  /** Totals by market bucket. */
   byKind: {
     stock: number
     crypto: number
@@ -35,10 +35,10 @@ function isKind(value: unknown): value is InvestmentKind {
   return value === 'stock' || value === 'crypto'
 }
 
-/** Load session realized P&L; corrupt/missing → zeros. */
+/** Load realized P&L from localStorage; corrupt/missing → zeros. */
 export function loadRealizedPnl(): RealizedPnlState {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return emptyState()
 
     const parsed = JSON.parse(raw) as Partial<RealizedPnlState>
@@ -71,7 +71,7 @@ export function loadRealizedPnl(): RealizedPnlState {
 
 export function saveRealizedPnl(state: RealizedPnlState): void {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   } catch {
     // private mode / quota
   }
