@@ -40,7 +40,7 @@ export function LaunchHelper() {
   const [selected, setSelected] = useState<ClothingCollection | null>(null)
   const [focusedMatch, setFocusedMatch] = useState<string | null>(null)
 
-  const matches = useMemo(() => searchCollections(query).slice(0, 12), [query])
+  const matches = useMemo(() => searchCollections(query), [query])
 
   const exactOrTop =
     selected ??
@@ -85,9 +85,7 @@ export function LaunchHelper() {
               Matches
             </h3>
             <span className="results-count spacer">
-              {query.trim()
-                ? `${matches.length}${matches.length === 12 ? '+' : ''} shown`
-                : 'Type to search'}
+              {query.trim() ? `${matches.length} shown` : 'Type to search'}
             </span>
           </div>
 

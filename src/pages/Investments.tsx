@@ -262,7 +262,7 @@ export function Investments() {
   const importInputRef = useRef<HTMLInputElement>(null)
   const importTextareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const matches = useMemo(() => searchAssets(kind, query).slice(0, 40), [kind, query])
+  const matches = useMemo(() => searchAssets(kind, query), [kind, query])
 
   /**
    * Owned / register rows for the active Stocks/Crypto tab.
@@ -1066,7 +1066,7 @@ export function Investments() {
             </h3>
             <span className="results-count spacer">
               {query.trim()
-                ? `${matches.length}${matches.length >= 40 ? '+' : ''} shown`
+                ? `${matches.length} shown`
                 : `${kind === 'stock' ? stocks.length : cryptos.length} assets`}
             </span>
           </div>
