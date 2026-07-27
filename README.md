@@ -4,6 +4,8 @@ A web companion for the Android game **Business Empire: RichMan**. Look up perfe
 
 **Live Utility:** https://ai.autonomo.codes/business-empire/
 
+> **98% coded by [Grok](https://grok.com) AI via [Grok Build](https://x.ai/cli)**
+
 ---
 
 ## Requirements
@@ -181,6 +183,12 @@ BusinessEmpire/
 - [TypeScript](https://www.typescriptlang.org/)
 - [Vite](https://vite.dev/) 6
 - [React Router](https://reactrouter.com/) 7
+
+### Built with Grok
+
+**98% coded by [Grok](https://grok.com) AI via [Grok Build](https://x.ai/cli).**
+
+This companion app was largely written end-to-end with [Grok](https://grok.com), SpaceXAI’s frontier model, driven from the terminal by [Grok Build](https://x.ai/cli) — SpaceXAI’s coding agent.
 
 ---
 

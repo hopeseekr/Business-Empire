@@ -246,6 +246,47 @@ p {
   font-weight: 700;
 }
 
+.grok-credit {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.grok-credit a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.grok-credit a:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+.sidebar-grok-credit {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.72rem;
+}
+
+.site-footer {
+  margin-top: auto;
+  padding: 1rem 1.75rem 1.35rem;
+  border-top: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.site-footer .grok-credit {
+  font-size: 0.9rem;
+}
+
+.site-footer .grok-credit strong {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
 /* ── Minified sidebar (Investments / Clothing tool pages) ── */
 
 .app-shell.sidebar-minified {
@@ -894,6 +935,10 @@ table.collections tbody tr.selected {
 
   .topbar {
     padding: 0 1rem;
+  }
+
+  .site-footer {
+    padding: 0.9rem 1rem 1.15rem;
   }
 
   .content {

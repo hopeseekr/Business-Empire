@@ -169,6 +169,16 @@ export function Layout() {
           <br />
           <strong>{businesses.filter((b) => b.status === 'live').length}</strong>{' '}
           business live · more coming.
+          <p className="grok-credit sidebar-grok-credit">
+            98% coded by{' '}
+            <a href="https://grok.com" target="_blank" rel="noopener noreferrer">
+              Grok
+            </a>{' '}
+            AI via{' '}
+            <a href="https://x.ai/cli" target="_blank" rel="noopener noreferrer">
+              Grok Build
+            </a>
+          </p>
         </div>
       </aside>
 
@@ -190,6 +200,19 @@ export function Layout() {
         <main className="content">
           <Outlet />
         </main>
+        <footer className="site-footer">
+          <p className="grok-credit">
+            <strong>98% coded by{' '}
+            <a href="https://grok.com" target="_blank" rel="noopener noreferrer">
+              Grok
+            </a>{' '}
+            AI via{' '}
+            <a href="https://x.ai/cli" target="_blank" rel="noopener noreferrer">
+              Grok Build
+            </a>
+            </strong>
+          </p>
+        </footer>
       </div>
     </div>
   )
