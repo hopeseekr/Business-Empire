@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FocusEvent } from 'react'
 import {
   analyzeTrade,
+  assetsFor,
   cryptos,
   formatMoney,
   formatPct,
@@ -9,6 +10,7 @@ import {
   stocks,
 } from '../data/investments'
 import {
+  assetStorageKey,
   getStoredEntry,
   loadInvestmentPrefs,
   resolveStoredAsset,
@@ -17,6 +19,16 @@ import {
   type StoredAssetEntry,
 } from '../data/investmentStorage'
 import type { InvestmentAsset, InvestmentKind, TradeAction, TradeAnalysis } from '../types'
+
+interface OwnedRow {
+  asset: InvestmentAsset
+  price: number
+  shares: number
+  totalInvestment: number
+  maxPotential: number
+  potentialPct: number
+  action: TradeAction
+}
 
 function actionMeta(action: TradeAction): { label: string; hint: string; className: string } {
   switch (action) {
@@ -196,6 +208,37 @@ export function Investments() {
 
   const matches = useMemo(() => searchAssets(kind, query).slice(0, 40), [kind, query])
 
+  /** Owned positions for the active Stocks/Crypto tab (shares > 0 + valid price). */
+  const ownedRows = useMemo((): OwnedRow[] => {
+    const list = assetsFor(kind)
+    const rows: OwnedRow[] = []
+
+    for (const asset of list) {
+      const entry = entries[assetStorageKey(kind, asset.id)]
+      if (!entry) continue
+
+      const priceVal = parseUserNumber(entry.price)
+      const sharesVal = parseUserNumber(entry.shares)
+      if (priceVal == null || priceVal <= 0) continue
+      if (sharesVal == null || sharesVal <= 0) continue
+
+      const analysis = analyzeTrade(asset, priceVal, sharesVal)
+      rows.push({
+        asset,
+        price: priceVal,
+        shares: sharesVal,
+        totalInvestment: analysis.positionValue ?? priceVal * sharesVal,
+        maxPotential: analysis.totalUpside ?? (asset.max - priceVal) * sharesVal,
+        potentialPct: analysis.potentialPct,
+        action: analysis.action,
+      })
+    }
+
+    // Highest total investment first — most capital on the line.
+    rows.sort((a, b) => b.totalInvestment - a.totalInvestment)
+    return rows
+  }, [kind, entries])
+
   // Persist prefs whenever kind, selection, or entries change.
   useEffect(() => {
     saveInvestmentPrefs({
@@ -301,6 +344,63 @@ export function Investments() {
           </button>
         </div>
       </section>
+
+      {ownedRows.length > 0 && (
+        <section className="card owned-assets" aria-label="Owned assets">
+          <div className="row owned-assets-header">
+            <h3 className="section-title" style={{ margin: 0 }}>
+              Owned {kind === 'stock' ? 'stocks' : 'crypto'}
+            </h3>
+            <span className="results-count spacer">{ownedRows.length}</span>
+          </div>
+          <div className="table-wrap owned-assets-wrap">
+            <table className="collections owned-assets-table">
+              <thead>
+                <tr>
+                  <th scope="col">Asset</th>
+                  <th scope="col">Last price</th>
+                  <th scope="col">Total inv.</th>
+                  <th scope="col">Max potential</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ownedRows.map((row) => {
+                  const isSelected =
+                    selected?.kind === row.asset.kind && selected.id === row.asset.id
+                  const actionClass =
+                    row.action === 'BUY'
+                      ? 'action-buy'
+                      : row.action === 'SELL'
+                        ? 'action-sell'
+                        : 'action-hold'
+                  const potPositive = row.maxPotential >= 0
+                  return (
+                    <tr
+                      key={`${row.asset.kind}-${row.asset.id}`}
+                      className={isSelected ? 'selected' : undefined}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => selectAsset(row.asset)}
+                      title={`${row.shares.toLocaleString()} shares · click to edit`}
+                    >
+                      <td className="collection-name">{row.asset.name}</td>
+                      <td className="num-cell">{formatMoney(row.price)}</td>
+                      <td className="num-cell">{formatMoney(row.totalInvestment)}</td>
+                      <td className={`num-cell ${potPositive ? 'pot-up' : 'pot-down'}`}>
+                        {formatMoney(row.maxPotential)}{' '}
+                        <span className="pot-pct">({formatPct(row.potentialPct)})</span>
+                      </td>
+                      <td>
+                        <span className={`action-chip ${actionClass}`}>{row.action}</span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <div className="grid-2 invest-layout">
         <section className="card">
