@@ -8,6 +8,14 @@ import {
   searchAssets,
   stocks,
 } from '../data/investments'
+import {
+  getStoredEntry,
+  loadInvestmentPrefs,
+  resolveStoredAsset,
+  saveInvestmentPrefs,
+  upsertEntry,
+  type StoredAssetEntry,
+} from '../data/investmentStorage'
 import type { InvestmentAsset, InvestmentKind, TradeAction, TradeAnalysis } from '../types'
 
 function actionMeta(action: TradeAction): { label: string; hint: string; className: string } {
@@ -155,25 +163,48 @@ function VerdictPanel({
   )
 }
 
+function applyEntry(
+  asset: InvestmentAsset | null,
+  entries: Record<string, StoredAssetEntry>,
+): { price: string; shares: string } {
+  if (!asset) return { price: '', shares: '' }
+  return getStoredEntry(entries, asset.kind, asset.id)
+}
+
 export function Investments() {
-  const [kind, setKind] = useState<InvestmentKind>('stock')
+  const initial = useMemo(() => loadInvestmentPrefs(), [])
+
+  const [kind, setKind] = useState<InvestmentKind>(initial.kind)
   const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState<InvestmentAsset | null>(null)
-  const [priceInput, setPriceInput] = useState('')
-  const [sharesInput, setSharesInput] = useState('')
+  const [selectedIds, setSelectedIds] = useState(initial.selectedIds)
+  const [entries, setEntries] = useState(initial.entries)
+
+  const [selected, setSelected] = useState<InvestmentAsset | null>(() =>
+    resolveStoredAsset(initial.kind, initial.selectedIds[initial.kind]),
+  )
+  const [priceInput, setPriceInput] = useState(() => {
+    const asset = resolveStoredAsset(initial.kind, initial.selectedIds[initial.kind])
+    return applyEntry(asset, initial.entries).price
+  })
+  const [sharesInput, setSharesInput] = useState(() => {
+    const asset = resolveStoredAsset(initial.kind, initial.selectedIds[initial.kind])
+    return applyEntry(asset, initial.entries).shares
+  })
   const [focusedAsset, setFocusedAsset] = useState<string | null>(null)
   const [focusPriceRequest, setFocusPriceRequest] = useState(0)
   const priceInputRef = useRef<HTMLInputElement>(null)
 
   const matches = useMemo(() => searchAssets(kind, query).slice(0, 40), [kind, query])
 
-  // When switching stock/crypto tab, clear selection and inputs.
+  // Persist prefs whenever kind, selection, or entries change.
   useEffect(() => {
-    setSelected(null)
-    setQuery('')
-    setPriceInput('')
-    setSharesInput('')
-  }, [kind])
+    saveInvestmentPrefs({
+      version: 1,
+      kind,
+      selectedIds,
+      entries,
+    })
+  }, [kind, selectedIds, entries])
 
   useEffect(() => {
     if (focusPriceRequest > 0) {
@@ -182,10 +213,41 @@ export function Investments() {
     }
   }, [focusPriceRequest, selected])
 
+  const switchKind = (next: InvestmentKind) => {
+    if (next === kind) return
+    setKind(next)
+    setQuery('')
+    const asset = resolveStoredAsset(next, selectedIds[next])
+    setSelected(asset)
+    const entry = applyEntry(asset, entries)
+    setPriceInput(entry.price)
+    setSharesInput(entry.shares)
+  }
+
   const selectAsset = (asset: InvestmentAsset) => {
     setSelected(asset)
-    setPriceInput('')
-    setSharesInput('')
+    setSelectedIds((prev) => ({ ...prev, [asset.kind]: asset.id }))
+    const entry = getStoredEntry(entries, asset.kind, asset.id)
+    setPriceInput(entry.price)
+    setSharesInput(entry.shares)
+  }
+
+  const setPriceForSelected = (value: string) => {
+    const next = sanitizeDecimalInput(value)
+    setPriceInput(next)
+    if (!selected) return
+    setEntries((prev) =>
+      upsertEntry(prev, selected.kind, selected.id, next, sharesInput),
+    )
+  }
+
+  const setSharesForSelected = (value: string) => {
+    const next = sanitizeDecimalInput(value)
+    setSharesInput(next)
+    if (!selected) return
+    setEntries((prev) =>
+      upsertEntry(prev, selected.kind, selected.id, priceInput, next),
+    )
   }
 
   const selectAllOnFocus = (e: FocusEvent<HTMLInputElement>) => {
@@ -207,8 +269,10 @@ export function Investments() {
   return (
     <div className="stack">
       <section className="hero-banner">
-        <h1><span aria-hidden="true">📈</span> Investments</h1>
-{/*
+        <h1>
+          <span aria-hidden="true">📈</span> Investments
+        </h1>
+        {/*
         <p>
           Plug in the in-game <strong style={{ color: 'var(--text)' }}>current price</strong> (and
           optionally how many shares you hold). The app computes remaining upside to your tracked
@@ -222,7 +286,7 @@ export function Investments() {
             role="tab"
             aria-selected={kind === 'stock'}
             className={kind === 'stock' ? 'active' : undefined}
-            onClick={() => setKind('stock')}
+            onClick={() => switchKind('stock')}
           >
             <span aria-hidden="true">📊</span> Stocks ({stocks.length})
           </button>
@@ -231,7 +295,7 @@ export function Investments() {
             role="tab"
             aria-selected={kind === 'crypto'}
             className={kind === 'crypto' ? 'active' : undefined}
-            onClick={() => setKind('crypto')}
+            onClick={() => switchKind('crypto')}
           >
             <span aria-hidden="true">₿</span> Crypto ({cryptos.length})
           </button>
@@ -369,7 +433,7 @@ export function Investments() {
                   disabled={!selected}
                   placeholder={selected ? `e.g. ${selected.lastNow}` : 'Select an asset first'}
                   value={priceInput}
-                  onChange={(e) => setPriceInput(sanitizeDecimalInput(e.target.value))}
+                  onChange={(e) => setPriceForSelected(e.target.value)}
                   onFocus={selectAllOnFocus}
                 />
                 {priceError && <div className="field-error">{priceError}</div>}
@@ -388,12 +452,12 @@ export function Investments() {
                   disabled={!selected}
                   placeholder="Leave blank if you don’t hold any"
                   value={sharesInput}
-                  onChange={(e) => setSharesInput(sanitizeDecimalInput(e.target.value))}
+                  onChange={(e) => setSharesForSelected(e.target.value)}
                   onFocus={selectAllOnFocus}
                 />
                 <div className="stat-hint" style={{ marginTop: '0.25rem' }}>
                   Enter shares only if you already own the asset — that switches SELL vs HOLD when
-                  price is at or above average.
+                  price is at or above average. Values are saved in this browser.
                 </div>
               </div>
             </div>
