@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+# Production webroot (regenerate with npm run build)
+public
+*.local
+.DS_Store
+*.log
+.env
+.env.*

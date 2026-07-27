@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/Layout.tsx","./src/data/businesses.ts","./src/data/collections.ts","./src/pages/ClothingOverview.tsx","./src/pages/Collections.tsx","./src/pages/Dashboard.tsx","./src/pages/Investments.tsx","./src/pages/LaunchHelper.tsx"],"version":"5.8.3"}

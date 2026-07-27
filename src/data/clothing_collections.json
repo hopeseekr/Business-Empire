@@ -1,0 +1,422 @@
+[
+  {
+    "name": "A new look at the classics",
+    "style": "Business",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Business"
+  },
+  {
+    "name": "Beach Season",
+    "style": "Modern",
+    "quality": "Medium",
+    "price": "Affordable",
+    "audience": "Middle"
+  },
+  {
+    "name": "Brutal Fashion",
+    "style": "Rebel",
+    "quality": "Budget",
+    "price": "Affordable",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Business Casual",
+    "style": "Business",
+    "quality": "Premium",
+    "price": "Medium",
+    "audience": "Business"
+  },
+  {
+    "name": "Business Chic",
+    "style": "Business",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Business"
+  },
+  {
+    "name": "Business chic",
+    "style": "Business",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Business"
+  },
+  {
+    "name": "Business style of the future",
+    "style": "Business",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Business"
+  },
+  {
+    "name": "Cyberpunk Fashion",
+    "style": "Tech",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Cybersport Fashion",
+    "style": "Tech",
+    "quality": "Premium",
+    "price": "Medium",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Digital Age",
+    "style": "Tech",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Elite Comfort",
+    "style": "Modern",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Elite comfort",
+    "style": "Modern",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Evening chic",
+    "style": "Glamor",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Free street style",
+    "style": "Street",
+    "quality": "Medium",
+    "price": "Affordable",
+    "audience": "Mass"
+  },
+  {
+    "name": "Freedom Festival",
+    "style": "Modern",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Futuristic Fashion",
+    "style": "Tech",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Gangster chic",
+    "style": "Retro",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Glamor of the 2000s",
+    "style": "Glamor",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Glamorous classic",
+    "style": "Glamor",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Glamorous Evening",
+    "style": "Glamor",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Gothic Fashion",
+    "style": "Rebel",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Hipster style",
+    "style": "Retro",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Luxury Suits",
+    "style": "Business",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Business"
+  },
+  {
+    "name": "Militaria Revival",
+    "style": "Rebel",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Minimalism in fashion",
+    "style": "Modern",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "New Elegance",
+    "style": "Modern",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Business"
+  },
+  {
+    "name": "Rebellion against rules",
+    "style": "Rebel",
+    "quality": "Medium",
+    "price": "Affordable",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Rebellion Against Tradition",
+    "style": "Rebel",
+    "quality": "Budget",
+    "price": "Affordable",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Retro Boom",
+    "style": "Retro",
+    "quality": "Premium",
+    "price": "Medium",
+    "audience": "Mass"
+  },
+  {
+    "name": "Retro Return",
+    "style": "Retro",
+    "quality": "Premium",
+    "price": "Medium",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Rock 'n' Roll Style",
+    "style": "Rebel",
+    "quality": "Budget",
+    "price": "Affordable",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Romantic Style",
+    "style": "Modern",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Middle"
+  },
+  {
+    "name": "Safari style",
+    "style": "Modern",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Second Life",
+    "style": "Modern",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Mass"
+  },
+  {
+    "name": "Smart Casual",
+    "style": "Business",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Business"
+  },
+  {
+    "name": "Social elegance",
+    "style": "Glamor",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Sport-luxe",
+    "style": "Modern",
+    "quality": "Premium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Sports as a lifestyle",
+    "style": "Streetwear",
+    "quality": "Premium",
+    "price": "Medium",
+    "audience": "Middle class"
+  },
+  {
+    "name": "Sporty Elegance",
+    "style": "Street",
+    "quality": "Premium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Street Anarchy",
+    "style": "Street",
+    "quality": "Medium",
+    "price": "Affordable",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Street Artist",
+    "style": "Street",
+    "quality": "Medium",
+    "price": "Affordable",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Street Comfort",
+    "style": "Streetwear",
+    "quality": "Medium",
+    "price": "Affordable",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Street Sport Chic",
+    "style": "Street",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Summer Festival Styles",
+    "style": "Bright",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Technology in Clothing",
+    "style": "Tech",
+    "quality": "Premium",
+    "price": "Medium",
+    "audience": "Business"
+  },
+  {
+    "name": "The glamorous 2000s",
+    "style": "Bright",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "The return of grunge",
+    "style": "Rebel",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "The return of grunge",
+    "style": "Rebel",
+    "quality": "Medium",
+    "price": "Affordable",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Timeless Classic",
+    "style": "Business",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Business"
+  },
+  {
+    "name": "Total chaos",
+    "style": "Rebel",
+    "quality": "Budget",
+    "price": "Affordable",
+    "audience": "Teenagers"
+  },
+  {
+    "name": "Travel Fashion",
+    "style": "Modern",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Unique design solutions",
+    "style": "Glamor",
+    "quality": "Exclusive",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Unisex Fashion",
+    "style": "Modern",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Mass"
+  },
+  {
+    "name": "Urban adaptation",
+    "style": "Modern",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Urban comfort",
+    "style": "Modern",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Urban cyberpunk",
+    "style": "Tech",
+    "quality": "Premium",
+    "price": "High",
+    "audience": "Premium"
+  },
+  {
+    "name": "Urban Dynamics",
+    "style": "Modern",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Urban Travelers",
+    "style": "Modern",
+    "quality": "Medium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Winter coziness",
+    "style": "Modern",
+    "quality": "Premium",
+    "price": "Medium",
+    "audience": "Middle"
+  },
+  {
+    "name": "Youth Rebellion",
+    "style": "Bright",
+    "quality": "Medium",
+    "price": "Affordable",
+    "audience": "Teenagers"
+  }
+]

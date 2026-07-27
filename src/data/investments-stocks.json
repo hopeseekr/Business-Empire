@@ -1,0 +1,502 @@
+[
+  {
+    "id": 1,
+    "asset": "3N",
+    "max": "$218.06",
+    "min": "$145.38",
+    "average": "$181.72",
+    "max_gain": "3.26 %",
+    "now": "$188.15",
+    "potential": "15.90%"
+  },
+  {
+    "id": 2,
+    "asset": "AD&D",
+    "max": "$30.40",
+    "min": "$20.26",
+    "average": "$25.33",
+    "max_gain": "5.32 %",
+    "now": "$27.18",
+    "potential": "11.83%"
+  },
+  {
+    "id": 3,
+    "asset": "Addott Laboratories",
+    "max": "$143.33",
+    "min": "$95.55",
+    "average": "$119.44",
+    "max_gain": "1.51 %",
+    "now": "$97.09",
+    "potential": "47.62%"
+  },
+  {
+    "id": 4,
+    "asset": "Amason",
+    "max": "$4,136.09",
+    "min": "$2,757.39",
+    "average": "$3,446.74",
+    "max_gain": "0.02 %",
+    "now": "$3,376.89",
+    "potential": "22.48%"
+  },
+  {
+    "id": 5,
+    "asset": "American Xpress",
+    "max": "$212.32",
+    "min": "$141.54",
+    "average": "$176.93",
+    "max_gain": "0.97 %",
+    "now": "$185.76",
+    "potential": "14.30%"
+  },
+  {
+    "id": 6,
+    "asset": "Bakster International",
+    "max": "$95.44",
+    "min": "$63.62",
+    "average": "$79.53",
+    "max_gain": "1.41 %",
+    "now": "$74.73",
+    "potential": "27.71%"
+  },
+  {
+    "id": 7,
+    "asset": "BayBall",
+    "max": "$325.52",
+    "min": "$217.02",
+    "average": "$271.27",
+    "max_gain": "0.08 %",
+    "now": "$258.20",
+    "potential": "26.07%"
+  },
+  {
+    "id": 8,
+    "asset": "BebsiCo",
+    "max": "$189.71",
+    "min": "$126.47",
+    "average": "$158.09",
+    "max_gain": "2.72 %",
+    "now": "$135.02",
+    "potential": "40.50%"
+  },
+  {
+    "id": 9,
+    "asset": "Biogeogen",
+    "max": "$320.83",
+    "min": "$213.89",
+    "average": "$267.36",
+    "max_gain": "0.14 %",
+    "now": "$240.79",
+    "potential": "33.24%"
+  },
+  {
+    "id": 10,
+    "asset": "Bojieng",
+    "max": "$260.38",
+    "min": "$173.58",
+    "average": "$216.98",
+    "max_gain": "0 %",
+    "now": "$194.75",
+    "potential": "33.70%"
+  },
+  {
+    "id": 11,
+    "asset": "Bokeeng",
+    "max": "$3,002.56",
+    "min": "$2,001.70",
+    "average": "$2,502.13",
+    "max_gain": "0.06 %",
+    "now": "$2,452.73",
+    "potential": "22.42%"
+  },
+  {
+    "id": 12,
+    "asset": "Callgade-Palmalive",
+    "max": "$89.65",
+    "min": "$59.77",
+    "average": "$74.71",
+    "max_gain": "2.41 %",
+    "now": "$61.58",
+    "potential": "45.59%"
+  },
+  {
+    "id": 13,
+    "asset": "Captain Motors",
+    "max": "$68.23",
+    "min": "$45.49",
+    "average": "$56.86",
+    "max_gain": "0.09 %",
+    "now": "$51.30",
+    "potential": "33.01%"
+  },
+  {
+    "id": 14,
+    "asset": "Caterpiler",
+    "max": "$237.82",
+    "min": "$158.54",
+    "average": "$198.18",
+    "max_gain": "2.24 %",
+    "now": "$183.16",
+    "potential": "29.84%"
+  },
+  {
+    "id": 15,
+    "asset": "Coco-Cola",
+    "max": "$64.73",
+    "min": "$43.15",
+    "average": "$53.94",
+    "max_gain": "3.11 %",
+    "now": "$50.05",
+    "potential": "29.33%"
+  },
+  {
+    "id": 16,
+    "asset": "CUALLCOM",
+    "max": "$158.98",
+    "min": "$105.98",
+    "average": "$132.48",
+    "max_gain": "2.05 %",
+    "now": "$113.31",
+    "potential": "40.30%"
+  },
+  {
+    "id": 17,
+    "asset": "CWZ Health",
+    "max": "$101.76",
+    "min": "$67.84",
+    "average": "$84.80",
+    "max_gain": "2.36 %",
+    "now": "$82.42",
+    "potential": "23.47%"
+  },
+  {
+    "id": 18,
+    "asset": "Dazelle",
+    "max": "$6.73",
+    "min": "$4.49",
+    "average": "$5.61",
+    "max_gain": "1.2 %",
+    "now": "$5.52",
+    "potential": "21.96%"
+  },
+  {
+    "id": 19,
+    "asset": "DMW",
+    "max": "$117.34",
+    "min": "$78.22",
+    "average": "$97.78",
+    "max_gain": "2.2 %",
+    "now": "$82.70",
+    "potential": "41.88%"
+  },
+  {
+    "id": 20,
+    "asset": "EBuy",
+    "max": "$89.62",
+    "min": "$59.74",
+    "average": "$74.68",
+    "max_gain": "0.96 %",
+    "now": "$67.34",
+    "potential": "33.08%"
+  },
+  {
+    "id": 21,
+    "asset": "Electronical Art",
+    "max": "$163.93",
+    "min": "$109.29",
+    "average": "$136.61",
+    "max_gain": "0.5 %",
+    "now": "$127.40",
+    "potential": "28.68%"
+  },
+  {
+    "id": 22,
+    "asset": "Fazebok",
+    "max": "$402.41",
+    "min": "$268.27",
+    "average": "$335.34",
+    "max_gain": "0.01 %",
+    "now": "$343.53",
+    "potential": "17.14%"
+  },
+  {
+    "id": 23,
+    "asset": "FeedX",
+    "max": "$273.58",
+    "min": "$182.38",
+    "average": "$227.98",
+    "max_gain": "1.32 %",
+    "now": "$237.34",
+    "potential": "15.27%"
+  },
+  {
+    "id": 24,
+    "asset": "Fort",
+    "max": "$18.70",
+    "min": "$12.46",
+    "average": "$15.58",
+    "max_gain": "0.01 %",
+    "now": "$612.37",
+    "potential": "-96.95%"
+  },
+  {
+    "id": 25,
+    "asset": "Hendaji",
+    "max": "$211.20",
+    "min": "$140.80",
+    "average": "$176.00",
+    "max_gain": "1.19 %",
+    "now": "$186.98",
+    "potential": "12.95%"
+  },
+  {
+    "id": 26,
+    "asset": "Imtell",
+    "max": "$65.36",
+    "min": "$43.58",
+    "average": "$54.47",
+    "max_gain": "2.55 %",
+    "now": "$55.71",
+    "potential": "17.33%"
+  },
+  {
+    "id": 27,
+    "asset": "Lockheat Martin",
+    "max": "$444.02",
+    "min": "$296.02",
+    "average": "$370.02",
+    "max_gain": "3.03 %",
+    "now": "$408.56",
+    "potential": "8.68%"
+  },
+  {
+    "id": 28,
+    "asset": "Marcedes-Benc",
+    "max": "$114.14",
+    "min": "$76.10",
+    "average": "$95.12",
+    "max_gain": "1.63 %",
+    "now": "$107.13",
+    "potential": "6.55%"
+  },
+  {
+    "id": 29,
+    "asset": "McDollans",
+    "max": "$290.71",
+    "min": "$193.81",
+    "average": "$242.26",
+    "max_gain": "2.28 %",
+    "now": "$227.85",
+    "potential": "27.59%"
+  },
+  {
+    "id": 30,
+    "asset": "Meistercard",
+    "max": "$434.17",
+    "min": "$289.45",
+    "average": "$361.81",
+    "max_gain": "0.49 %",
+    "now": "$364.16",
+    "potential": "19.23%"
+  },
+  {
+    "id": 31,
+    "asset": "MVIDIA",
+    "max": "$267.35",
+    "min": "$178.23",
+    "average": "$222.79",
+    "max_gain": "0.07 %",
+    "now": "$235.73",
+    "potential": "13.41%"
+  },
+  {
+    "id": 32,
+    "asset": "Mykrosofft",
+    "max": "$368.75",
+    "min": "$245.83",
+    "average": "$307.29",
+    "max_gain": "0.81 %",
+    "now": "$319.46",
+    "potential": "15.43%"
+  },
+  {
+    "id": 33,
+    "asset": "Naek",
+    "max": "$191.32",
+    "min": "$127.54",
+    "average": "$159.43",
+    "max_gain": "0.69 %",
+    "now": "$148.93",
+    "potential": "28.46%"
+  },
+  {
+    "id": 34,
+    "asset": "Netflexx",
+    "max": "$765.56",
+    "min": "$510.38",
+    "average": "$637.97",
+    "max_gain": "0.01 %",
+    "now": "$608.04",
+    "potential": "25.91%"
+  },
+  {
+    "id": 35,
+    "asset": "Packcar",
+    "max": "$104.27",
+    "min": "$69.51",
+    "average": "$86.89",
+    "max_gain": "1.57 %",
+    "now": "$85.90",
+    "potential": "21.38%"
+  },
+  {
+    "id": 36,
+    "asset": "Phillipo Mores",
+    "max": "$116.94",
+    "min": "$77.96",
+    "average": "$97.45",
+    "max_gain": "4.68 %",
+    "now": "$110.36",
+    "potential": "5.96%"
+  },
+  {
+    "id": 37,
+    "asset": "Pineapple",
+    "max": "$175.86",
+    "min": "$117.24",
+    "average": "$146.55",
+    "max_gain": "0.6 %",
+    "now": "$136.60",
+    "potential": "28.74%"
+  },
+  {
+    "id": 38,
+    "asset": "Renolt",
+    "max": "$45.07",
+    "min": "$30.05",
+    "average": "$37.56",
+    "max_gain": "0.02 %",
+    "now": "$39.33",
+    "potential": "14.60%"
+  },
+  {
+    "id": 39,
+    "asset": "Schlumburger MV",
+    "max": "$41.28",
+    "min": "$27.52",
+    "average": "$34.40",
+    "max_gain": "1.45 %",
+    "now": "$31.43",
+    "potential": "31.34%"
+  },
+  {
+    "id": 40,
+    "asset": "Striker",
+    "max": "$324.62",
+    "min": "$216.42",
+    "average": "$270.52",
+    "max_gain": "0.93 %",
+    "now": "$258.19",
+    "potential": "25.73%"
+  },
+  {
+    "id": 41,
+    "asset": "Tassla",
+    "max": "$1,044.13",
+    "min": "$696.09",
+    "average": "$870.11",
+    "max_gain": "0.01 %",
+    "now": "$969.63",
+    "potential": "7.68%"
+  },
+  {
+    "id": 42,
+    "asset": "Tehass Instruments",
+    "max": "$237.53",
+    "min": "$158.35",
+    "average": "$197.94",
+    "max_gain": "2.32 %",
+    "now": "$15.41",
+    "potential": "1441.39%"
+  },
+  {
+    "id": 43,
+    "asset": "Toyoda",
+    "max": "$21.30",
+    "min": "$14.20",
+    "average": "$17.75",
+    "max_gain": "2.32 %",
+    "now": "$191.08",
+    "potential": "-88.85%"
+  },
+  {
+    "id": 44,
+    "asset": "Tutu Motors",
+    "max": "$7.72",
+    "min": "$5.14",
+    "average": "$6.43",
+    "max_gain": "0 %",
+    "now": "$6.13",
+    "potential": "25.87%"
+  },
+  {
+    "id": 45,
+    "asset": "UnightedHealth",
+    "max": "$509.17",
+    "min": "$339.45",
+    "average": "$424.31",
+    "max_gain": "1.37 %",
+    "now": "$362.74",
+    "potential": "40.37%"
+  },
+  {
+    "id": 46,
+    "asset": "Valera Energy",
+    "max": "$96.16",
+    "min": "$64.10",
+    "average": "$80.13",
+    "max_gain": "4.89 %",
+    "now": "$79.82",
+    "potential": "20.47%"
+  },
+  {
+    "id": 47,
+    "asset": "Viza",
+    "max": "$280.01",
+    "min": "$186.67",
+    "average": "$233.34",
+    "max_gain": "0.55 %",
+    "now": "$207.31",
+    "potential": "35.07%"
+  },
+  {
+    "id": 48,
+    "asset": "Volgswagon",
+    "max": "$258.08",
+    "min": "$172.06",
+    "average": "$215.07",
+    "max_gain": "2.58 %",
+    "now": "$195.93",
+    "potential": "31.72%"
+  },
+  {
+    "id": 49,
+    "asset": "WallsMart",
+    "max": "$170.02",
+    "min": "$113.34",
+    "average": "$141.68",
+    "max_gain": "1.55 %",
+    "now": "$156.87",
+    "potential": "8.38%"
+  },
+  {
+    "id": 50,
+    "asset": "XonMobyll",
+    "max": "$75.07",
+    "min": "$50.05",
+    "average": "$62.56",
+    "max_gain": "5.07 %",
+    "now": "$66.11",
+    "potential": "13.56%"
+  }
+]
