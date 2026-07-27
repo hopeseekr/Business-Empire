@@ -311,8 +311,8 @@ export function Investments() {
       }
 
       const analysis = analyzeTrade(asset, livePrice, shares)
-      // Capital at risk = average cost × shares (not mark-to-market value).
-      const totalInvestment = basis * shares
+      // Mark-to-market value = live price × shares (unrealized portfolio value).
+      const totalInvestment = livePrice * shares
       const gainLoss = (livePrice - basis) * shares
       const gainLossPct = ((livePrice - basis) / basis) * 100
 
@@ -332,7 +332,7 @@ export function Investments() {
       })
     }
 
-    // Highest total investment first — most capital on the line.
+    // Highest mark-to-market value first.
     rows.sort((a, b) => b.totalInvestment - a.totalInvestment)
     return rows
   }, [kind, entries])
@@ -509,7 +509,7 @@ export function Investments() {
       firstPrice: firstPriceVal,
       shares: held,
       metricsReady: held > 0,
-      totalInvestment: held > 0 ? firstPriceVal * held : 0,
+      totalInvestment: held > 0 ? priceVal * held : 0,
       gainLoss: held > 0 ? (priceVal - firstPriceVal) * held : 0,
       gainLossPct:
         held > 0 && firstPriceVal > 0
