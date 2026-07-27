@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FocusEvent } from 'react'
-import { TradeDialog, formatShares } from '../components/TradeDialog'
+import { TradeDialog, formatShares, unitWord } from '../components/TradeDialog'
 import {
   analyzeTrade,
   assetsFor,
@@ -51,7 +51,11 @@ interface OwnedRow {
   action: TradeAction
 }
 
-function actionMeta(action: TradeAction): { label: string; hint: string; className: string } {
+function actionMeta(
+  action: TradeAction,
+  kind: InvestmentKind,
+): { label: string; hint: string; className: string } {
+  const units = unitWord(kind, 'plural')
   switch (action) {
     case 'BUY':
       return {
@@ -62,7 +66,7 @@ function actionMeta(action: TradeAction): { label: string; hint: string; classNa
     case 'SELL':
       return {
         label: 'SELL',
-        hint: 'You hold shares and price is at/above average — take profit toward max.',
+        hint: `You hold ${units} and price is at/above average — take profit toward max.`,
         className: 'action-sell',
       }
     case 'HOLD':
@@ -99,9 +103,12 @@ function VerdictPanel({
   analysis: TradeAnalysis
   onOpenTrade?: () => void
 }) {
-  const meta = actionMeta(analysis.action)
+  const meta = actionMeta(analysis.action, asset.kind)
   const potPositive = analysis.potentialPct >= 0
   const tradeable = Boolean(onOpenTrade)
+  const units = unitWord(asset.kind, 'plural')
+  const unitsTitle = unitWord(asset.kind, 'title')
+  const unitSingular = unitWord(asset.kind, 'singular')
 
   return (
     <div className="stack" style={{ gap: '1rem' }}>
@@ -117,7 +124,7 @@ function VerdictPanel({
         <p className="verdict-hint">{meta.hint}</p>
         {tradeable && (
           <span className="verdict-trade-hint">
-            Tap to open trade dialog (buy or sell shares)
+            Tap to open trade dialog (buy or sell {units})
           </span>
         )}
       </button>
@@ -128,7 +135,7 @@ function VerdictPanel({
           {formatPct(analysis.potentialPct)}
         </div>
         <div className="potential-sub">
-          Upside to max: <strong>{formatMoney(analysis.upsidePerShare)}</strong> / share
+          Upside to max: <strong>{formatMoney(analysis.upsidePerShare)}</strong> / {unitSingular}
           {analysis.totalUpside != null && (
             <>
               {' '}
@@ -164,7 +171,7 @@ function VerdictPanel({
       {analysis.shares != null && analysis.shares > 0 && (
         <div className="grid-2">
           <div className="stat-card">
-            <div className="stat-label">Shares</div>
+            <div className="stat-label">{unitsTitle}</div>
             <div className="stat-value">{analysis.shares.toLocaleString()}</div>
           </div>
           <div className="stat-card">
@@ -760,10 +767,11 @@ export function Investments() {
                     getAssetRealized(realizedPnl, row.asset.kind, row.asset.id)?.realized ?? 0
                   const realizedClass =
                     realized > 0 ? 'pot-up' : realized < 0 ? 'pot-down' : undefined
+                  const units = unitWord(row.asset.kind, 'plural')
                   const shareLabel =
                     row.shares > 0
-                      ? `${row.shares.toLocaleString()} shares`
-                      : 'shares zeroed — still on register'
+                      ? `${row.shares.toLocaleString()} ${units}`
+                      : `${units} zeroed — still on register`
                   return (
                     <tr
                       key={`${row.asset.kind}-${row.asset.id}`}
@@ -997,14 +1005,14 @@ export function Investments() {
 
               {selected && (
                 <div className="stat-card" style={{ margin: 0 }}>
-                  <div className="stat-label">Shares held</div>
+                  <div className="stat-label">{unitWord(selected.kind, 'title')} held</div>
                   <div className="stat-value">
                     {shares != null ? shares.toLocaleString() : '0'}
                   </div>
                   <div className="stat-hint" style={{ marginTop: '0.35rem' }}>
                     {shares != null
                       ? 'Use BUY / SELL on the verdict (or the owned table) to change this position. Average cost updates automatically.'
-                      : 'No position yet — enter a price, then tap BUY on the verdict to open shares via the trade dialog.'}
+                      : `No position yet — enter a price, then tap BUY on the verdict to open ${unitWord(selected.kind, 'plural')} via the trade dialog.`}
                   </div>
                 </div>
               )}
@@ -1032,7 +1040,8 @@ export function Investments() {
             <ul className="mechanics-list" style={{ marginTop: '0.5rem' }}>
               <li>
                 Enter the <strong>current price</strong>, then tap the verdict to{' '}
-                <strong>BUY</strong> or <strong>SELL</strong> shares in the trade dialog.
+                <strong>BUY</strong> or <strong>SELL</strong> {unitWord(kind, 'plural')} in the
+                trade dialog.
               </li>
               <li>
                 <strong>Potential</strong> = (Max − Price) / Price — remaining upside to your tracked
@@ -1042,10 +1051,12 @@ export function Investments() {
                 Price <strong>below average</strong> → <strong>BUY</strong>
               </li>
               <li>
-                Price <strong>at/above average</strong> + you hold shares → <strong>SELL</strong>
+                Price <strong>at/above average</strong> + you hold {unitWord(kind, 'plural')} →{' '}
+                <strong>SELL</strong>
               </li>
               <li>
-                Price <strong>at/above average</strong> + no shares → <strong>HOLD</strong> (wait)
+                Price <strong>at/above average</strong> + no {unitWord(kind, 'plural')} →{' '}
+                <strong>HOLD</strong> (wait)
               </li>
             </ul>
           </section>

@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type FocusEvent } from 'react'
 import { formatMoney, formatPct, parseUserNumber } from '../data/investments'
 import { formatSignedMoney } from '../data/realizedPnlStorage'
-import type { InvestmentAsset, TradeAction } from '../types'
+import type { InvestmentAsset, InvestmentKind, TradeAction } from '../types'
 
 export interface TradePosition {
   asset: InvestmentAsset
@@ -19,6 +19,17 @@ export interface TradePosition {
 type AmountMode = 'shares' | 'dollars'
 type DialogStep = 'edit' | 'sell-confirm'
 
+/** User-facing unit for stock shares vs crypto coins. */
+export function unitWord(kind: InvestmentKind, form: 'singular' | 'plural' | 'title' = 'plural'): string {
+  if (kind === 'crypto') {
+    if (form === 'singular') return 'coin'
+    if (form === 'title') return 'Coins'
+    return 'coins'
+  }
+  if (form === 'singular') return 'share'
+  if (form === 'title') return 'Shares'
+  return 'shares'
+}
 
 function sanitizeDecimalInput(value: string): string {
   let result = ''
@@ -34,7 +45,7 @@ function sanitizeDecimalInput(value: string): string {
   return result
 }
 
-/** Compact share display without ugly float tails. */
+/** Compact share/coin quantity display without ugly float tails. */
 export function formatShares(n: number): string {
   if (!Number.isFinite(n)) return '—'
   if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n))
@@ -82,6 +93,8 @@ export function TradeDialog({
   const [error, setError] = useState<string | null>(null)
 
   const { asset, shares: held } = position
+  const units = unitWord(asset.kind, 'plural')
+  const unitsTitle = unitWord(asset.kind, 'title')
 
   /** Live price from the editable field (drives conversions + fills). */
   const price = useMemo(() => {
@@ -164,7 +177,7 @@ export function TradeDialog({
     if (resolvedShares == null || resolvedShares <= 0) {
       setError(
         mode === 'shares'
-          ? 'Enter how many shares to buy.'
+          ? `Enter how many ${units} to buy.`
           : 'Enter a dollar amount to buy.',
       )
       return
@@ -179,13 +192,13 @@ export function TradeDialog({
       return
     }
     if (held <= 0) {
-      setError('You have no shares to sell.')
+      setError(`You have no ${units} to sell.`)
       return
     }
     if (resolvedShares == null || resolvedShares <= 0) {
       setError(
         mode === 'shares'
-          ? 'Enter how many shares to sell.'
+          ? `Enter how many ${units} to sell.`
           : 'Enter a dollar amount to sell.',
       )
       return
@@ -195,8 +208,8 @@ export function TradeDialog({
     if (sharesToSell > held + 1e-12) {
       setError(
         mode === 'shares'
-          ? `You only hold ${formatShares(held)} shares.`
-          : `That is about ${formatShares(sharesToSell)} shares; you only hold ${formatShares(held)}.`,
+          ? `You only hold ${formatShares(held)} ${units}.`
+          : `That is about ${formatShares(sharesToSell)} ${units}; you only hold ${formatShares(held)}.`,
       )
       return
     }
@@ -279,7 +292,7 @@ export function TradeDialog({
               />
             </div>
             <div>
-              <span className="trade-record-label">Shares held</span>
+              <span className="trade-record-label">{unitsTitle} held</span>
               <span className="trade-record-value">{formatShares(position.shares)}</span>
             </div>
             <div>
@@ -345,7 +358,7 @@ export function TradeDialog({
                 className={mode === 'shares' ? 'active' : undefined}
                 onClick={() => setModeExclusive('shares')}
               >
-                Number of shares
+                Number of {units}
               </button>
               <button
                 type="button"
@@ -361,7 +374,7 @@ export function TradeDialog({
             <div className="field trade-amount-field">
               <div className="row" style={{ marginBottom: '0.35rem' }}>
                 <label className="field-label" htmlFor="trade-amount" style={{ margin: 0 }}>
-                  {mode === 'shares' ? 'Shares' : 'Dollar amount'}
+                  {mode === 'shares' ? unitsTitle : 'Dollar amount'}
                 </label>
                 {mode === 'shares' && (
                   <button type="button" className="trade-all-btn" onClick={fillAllShares}>
@@ -390,7 +403,7 @@ export function TradeDialog({
                   <span className="trade-amount-equiv-num trade-amount-equiv-num-primary">
                     {formatShares(resolvedShares)}
                   </span>{' '}
-                  shares ·{' '}
+                  {units} ·{' '}
                   <span className="trade-amount-equiv-num trade-amount-equiv-num-secondary">
                     {formatMoney(resolvedCost ?? 0)}
                   </span>{' '}
@@ -429,7 +442,7 @@ export function TradeDialog({
             <h3 className="trade-confirm-title">Confirm SELL</h3>
             <p className="trade-confirm-body">
               Sell exactly{' '}
-              <strong className="pot-down">{formatShares(pendingSellShares ?? 0)}</strong> shares
+              <strong className="pot-down">{formatShares(pendingSellShares ?? 0)}</strong> {units}{' '}
               of <strong>{asset.name}</strong> at{' '}
               <strong>{price > 0 ? formatMoney(price) : '—'}</strong>.
             </p>
@@ -447,7 +460,7 @@ export function TradeDialog({
                 </strong>
               </li>
               <li>
-                Shares remaining:{' '}
+                {unitsTitle} remaining:{' '}
                 <strong>{formatShares(Math.max(0, held - (pendingSellShares ?? 0)))}</strong>
               </li>
             </ul>
