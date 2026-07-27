@@ -1,3 +1,11 @@
+## v1.3.0
+
+* **[2026-07-27 17:08:39 EEST]** Lower Viza stock min range to $183.47.
+* **[2026-07-27 17:07:32 EEST]** Add Bullion category with Gold, Silver, and Diamonds.
+* **[2026-07-27 13:37:24 EEST]** Show full stock, crypto, and clothing match lists.
+* **[2026-07-27 11:57:27 EEST]** Add portfolio Export/Import for positions and realized P&L.
+* **[2026-07-27 11:57:21 EEST]** Persist realized P&L in localStorage instead of sessionStorage.
+
 ## v1.2.0
 
 * **[2026-07-27 07:17:12 EEST]** Use coins wording for crypto in trade UI.
