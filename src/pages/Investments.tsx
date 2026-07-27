@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FocusEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FocusEvent } from 'react'
 import {
   analyzeTrade,
   cryptos,
@@ -146,6 +146,8 @@ export function Investments() {
   const [priceInput, setPriceInput] = useState('')
   const [sharesInput, setSharesInput] = useState('')
   const [focusedAsset, setFocusedAsset] = useState<string | null>(null)
+  const [focusPriceRequest, setFocusPriceRequest] = useState(0)
+  const priceInputRef = useRef<HTMLInputElement>(null)
 
   const matches = useMemo(() => searchAssets(kind, query).slice(0, 40), [kind, query])
 
@@ -156,6 +158,13 @@ export function Investments() {
     setPriceInput('')
     setSharesInput('')
   }, [kind])
+
+  useEffect(() => {
+    if (focusPriceRequest > 0) {
+      priceInputRef.current?.focus()
+      setFocusPriceRequest(0)
+    }
+  }, [focusPriceRequest, selected])
 
   const selectAsset = (asset: InvestmentAsset) => {
     setSelected(asset)
@@ -257,10 +266,6 @@ export function Investments() {
                     <tr
                       key={`${a.kind}-${a.id}`}
                       className={isSelected ? 'selected' : undefined}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Select ${a.name}`}
-                      aria-selected={isSelected}
                       style={{
                         cursor: 'pointer',
                         outline:
@@ -270,16 +275,37 @@ export function Investments() {
                         outlineOffset: '-2px',
                       }}
                       onClick={() => selectAsset(a)}
-                      onFocus={() => setFocusedAsset(`${a.kind}-${a.id}`)}
-                      onBlur={() => setFocusedAsset(null)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          selectAsset(a)
-                        }
-                      }}
                     >
-                      <td className="collection-name">{a.name}</td>
+                      <td className="collection-name">
+                        <button
+                          type="button"
+                          aria-pressed={isSelected}
+                          style={{
+                            border: 0,
+                            padding: 0,
+                            background: 'transparent',
+                            color: 'inherit',
+                            font: 'inherit',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                          }}
+                          onFocus={() => setFocusedAsset(`${a.kind}-${a.id}`)}
+                          onBlur={() => setFocusedAsset(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              selectAsset(a)
+                              setFocusPriceRequest((request) => request + 1)
+                            }
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            selectAsset(a)
+                          }}
+                        >
+                          {a.name}
+                        </button>
+                      </td>
                       <td style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
                         {formatMoney(a.min)}
                       </td>
@@ -317,6 +343,7 @@ export function Investments() {
                 </label>
                 <input
                   id="current-price"
+                  ref={priceInputRef}
                   className="input input-lg"
                   type="text"
                   inputMode="decimal"

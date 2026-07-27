@@ -124,26 +124,36 @@ export function LaunchHelper() {
                       <tr
                         key={`${c.name}-${c.style}-${c.price}-${i}`}
                         className={isSelected ? 'selected' : undefined}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Select ${c.name}`}
-                        aria-selected={isSelected}
                         style={{
                           cursor: 'pointer',
                           outline: focusedMatch === c.name ? '2px solid var(--accent)' : undefined,
                           outlineOffset: '-2px',
                         }}
                         onClick={() => setSelected(c)}
-                        onFocus={() => setFocusedMatch(c.name)}
-                        onBlur={() => setFocusedMatch(null)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            setSelected(c)
-                          }
-                        }}
                       >
-                        <td className="collection-name">{c.name}</td>
+                        <td className="collection-name">
+                          <button
+                            type="button"
+                            aria-pressed={isSelected}
+                            style={{
+                              border: 0,
+                              padding: 0,
+                              background: 'transparent',
+                              color: 'inherit',
+                              font: 'inherit',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                            }}
+                            onFocus={() => setFocusedMatch(c.name)}
+                            onBlur={() => setFocusedMatch(null)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelected(c)
+                            }}
+                          >
+                            {c.name}
+                          </button>
+                        </td>
                         <td>
                           <span className="chip chip-style">{c.style}</span>
                         </td>
