@@ -31,6 +31,7 @@ export interface InvestmentMeta {
   selectedIds: {
     stock: number | null
     crypto: number | null
+    bullion: number | null
   }
 }
 
@@ -41,6 +42,7 @@ export interface InvestmentPrefs {
   selectedIds: {
     stock: number | null
     crypto: number | null
+    bullion: number | null
   }
   /** Map of "kind:id" → last price/shares inputs (mirrors per-asset localStorage keys). */
   entries: Record<string, StoredAssetEntry>
@@ -50,7 +52,7 @@ function emptyMeta(): InvestmentMeta {
   return {
     version: 2,
     kind: 'stock',
-    selectedIds: { stock: null, crypto: null },
+    selectedIds: { stock: null, crypto: null, bullion: null },
   }
 }
 
@@ -74,13 +76,13 @@ export function assetLocalStorageKey(kind: InvestmentKind, id: number): string {
 function parseAssetStorageKey(
   mapKey: string,
 ): { kind: InvestmentKind; id: number } | null {
-  const match = /^(stock|crypto):(\d+)$/.exec(mapKey)
+  const match = /^(stock|crypto|bullion):(\d+)$/.exec(mapKey)
   if (!match) return null
   return { kind: match[1] as InvestmentKind, id: Number(match[2]) }
 }
 
 function isKind(value: unknown): value is InvestmentKind {
-  return value === 'stock' || value === 'crypto'
+  return value === 'stock' || value === 'crypto' || value === 'bullion'
 }
 
 function isEntry(value: unknown): value is StoredAssetEntry {
@@ -275,6 +277,10 @@ function loadMeta(): InvestmentMeta {
         typeof parsed.selectedIds?.stock === 'number' ? parsed.selectedIds.stock : null,
       crypto:
         typeof parsed.selectedIds?.crypto === 'number' ? parsed.selectedIds.crypto : null,
+      bullion:
+        typeof parsed.selectedIds?.bullion === 'number'
+          ? parsed.selectedIds.bullion
+          : null,
     },
   }
 }
@@ -310,6 +316,8 @@ function migrateLegacyV1IfNeeded(): void {
           typeof raw.selectedIds?.stock === 'number' ? raw.selectedIds.stock : null,
         crypto:
           typeof raw.selectedIds?.crypto === 'number' ? raw.selectedIds.crypto : null,
+        bullion:
+          typeof raw.selectedIds?.bullion === 'number' ? raw.selectedIds.bullion : null,
       },
     })
   }

@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
 import { businesses } from '../data/businesses'
 import { collections } from '../data/collections'
-import { cryptos, stocks } from '../data/investments'
+import { bullion, cryptos, stocks } from '../data/investments'
 
 export function Dashboard() {
   const live = businesses.filter((b) => b.status === 'live')
   const soon = businesses.filter((b) => b.status === 'coming-soon')
-  const assetCount = stocks.length + cryptos.length
+  const assetCount = stocks.length + cryptos.length + bullion.length
 
   return (
     <div className="stack">
@@ -15,7 +15,7 @@ export function Dashboard() {
         <p>
           A companion for <strong style={{ color: 'var(--text)' }}>Business Empire: RichMan</strong>.
           Look up perfect Clothing Brand launch answers, browse every collection, and run your
-          stock &amp; crypto BUY / HOLD / SELL helper from years of tracked ranges.
+          stock, crypto &amp; bullion BUY / HOLD / SELL helper from years of tracked ranges.
         </p>
         <div className="row">
           <Link to="/clothing/launch" className="btn btn-cta">
@@ -48,7 +48,7 @@ export function Dashboard() {
           <div className="stat-label">Tracked assets</div>
           <div className="stat-value">{assetCount}</div>
           <div className="stat-hint">
-            {stocks.length} stocks · {cryptos.length} crypto
+            {stocks.length} stocks · {cryptos.length} crypto · {bullion.length} bullion
           </div>
         </div>
       </div>

@@ -17,12 +17,17 @@ export interface BusinessMeta {
   icon: string
 }
 
-export type InvestmentKind = 'stock' | 'crypto'
+export type InvestmentKind = 'stock' | 'crypto' | 'bullion'
+
+/** Quantity unit for an asset (drives UI copy: shares / coins / ingots / carats). */
+export type InvestmentUnit = 'share' | 'coin' | 'ingot' | 'carat'
 
 /** Raw row shape from investments-*.json (currency strings from the spreadsheet). */
 export interface InvestmentRaw {
   id: number
   asset: string
+  /** Optional; bullion sets ingot/carat. Stocks default to share, crypto to coin. */
+  unit?: InvestmentUnit
   max: string
   min: string
   average: string
@@ -38,6 +43,8 @@ export interface InvestmentAsset {
   id: number
   kind: InvestmentKind
   name: string
+  /** Quantity unit shown in trade UI (share / coin / ingot / carat). */
+  unit: InvestmentUnit
   max: number
   min: number
   average: number

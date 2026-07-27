@@ -18,6 +18,7 @@ export interface PortfolioBackup {
     selectedIds: {
       stock: number | null
       crypto: number | null
+      bullion: number | null
     }
     entries: Record<string, StoredAssetEntry>
   }
@@ -39,7 +40,7 @@ export type ImportResult =
   | { ok: false; error: string }
 
 function isKind(value: unknown): value is InvestmentKind {
-  return value === 'stock' || value === 'crypto'
+  return value === 'stock' || value === 'crypto' || value === 'bullion'
 }
 
 function isEntry(value: unknown): value is StoredAssetEntry {
@@ -51,7 +52,7 @@ function isEntry(value: unknown): value is StoredAssetEntry {
 }
 
 function parseAssetMapKey(key: string): boolean {
-  return /^(stock|crypto):\d+$/.test(key)
+  return /^(stock|crypto|bullion):\d+$/.test(key)
 }
 
 function parseSelectedId(value: unknown): number | null {
@@ -76,6 +77,9 @@ function parseRealizedPnl(raw: unknown): RealizedPnlState | null {
   const byKind = {
     stock: Number.isFinite(parsed.byKind?.stock) ? Number(parsed.byKind!.stock) : 0,
     crypto: Number.isFinite(parsed.byKind?.crypto) ? Number(parsed.byKind!.crypto) : 0,
+    bullion: Number.isFinite(parsed.byKind?.bullion)
+      ? Number(parsed.byKind!.bullion)
+      : 0,
   }
 
   const byAsset: Record<string, AssetRealizedPnl> = {}
@@ -168,6 +172,7 @@ export function parsePortfolioBackup(raw: unknown): ImportResult {
         selectedIds: {
           stock: parseSelectedId(selectedIdsRaw.stock),
           crypto: parseSelectedId(selectedIdsRaw.crypto),
+          bullion: parseSelectedId(selectedIdsRaw.bullion),
         },
         entries,
       },

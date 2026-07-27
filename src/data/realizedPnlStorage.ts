@@ -18,6 +18,7 @@ export interface RealizedPnlState {
   byKind: {
     stock: number
     crypto: number
+    bullion: number
   }
   /** Per-asset cumulative realized P&L (`kind:id` → stats). */
   byAsset: Record<string, AssetRealizedPnl>
@@ -26,13 +27,13 @@ export interface RealizedPnlState {
 function emptyState(): RealizedPnlState {
   return {
     version: 1,
-    byKind: { stock: 0, crypto: 0 },
+    byKind: { stock: 0, crypto: 0, bullion: 0 },
     byAsset: {},
   }
 }
 
 function isKind(value: unknown): value is InvestmentKind {
-  return value === 'stock' || value === 'crypto'
+  return value === 'stock' || value === 'crypto' || value === 'bullion'
 }
 
 /** Load realized P&L from localStorage; corrupt/missing → zeros. */
@@ -45,6 +46,9 @@ export function loadRealizedPnl(): RealizedPnlState {
     const byKind = {
       stock: Number.isFinite(parsed.byKind?.stock) ? Number(parsed.byKind!.stock) : 0,
       crypto: Number.isFinite(parsed.byKind?.crypto) ? Number(parsed.byKind!.crypto) : 0,
+      bullion: Number.isFinite(parsed.byKind?.bullion)
+        ? Number(parsed.byKind!.bullion)
+        : 0,
     }
 
     const byAsset: Record<string, AssetRealizedPnl> = {}

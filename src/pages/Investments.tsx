@@ -3,6 +3,7 @@ import { TradeDialog, formatShares, unitWord } from '../components/TradeDialog'
 import {
   analyzeTrade,
   assetsFor,
+  bullion,
   cryptos,
   formatMoney,
   formatPct,
@@ -58,11 +59,33 @@ interface OwnedRow {
   action: TradeAction
 }
 
+function kindTitle(kind: InvestmentKind): string {
+  if (kind === 'stock') return 'Stocks'
+  if (kind === 'crypto') return 'Cryptocurrencies'
+  return 'Bullion'
+}
+
+function kindShort(kind: InvestmentKind): string {
+  if (kind === 'stock') return 'Stock'
+  if (kind === 'crypto') return 'Crypto'
+  return 'Bullion'
+}
+
+function kindOwnedLabel(kind: InvestmentKind): string {
+  if (kind === 'stock') return 'stocks'
+  if (kind === 'crypto') return 'crypto'
+  return 'bullion'
+}
+
+function assetsCount(kind: InvestmentKind): number {
+  return assetsFor(kind).length
+}
+
 function actionMeta(
   action: TradeAction,
-  kind: InvestmentKind,
+  unitSource: InvestmentAsset | InvestmentKind,
 ): { label: string; hint: string; className: string } {
-  const units = unitWord(kind, 'plural')
+  const units = unitWord(unitSource, 'plural')
   switch (action) {
     case 'BUY':
       return {
@@ -110,12 +133,12 @@ function VerdictPanel({
   analysis: TradeAnalysis
   onOpenTrade?: () => void
 }) {
-  const meta = actionMeta(analysis.action, asset.kind)
+  const meta = actionMeta(analysis.action, asset)
   const potPositive = analysis.potentialPct >= 0
   const tradeable = Boolean(onOpenTrade)
-  const units = unitWord(asset.kind, 'plural')
-  const unitsTitle = unitWord(asset.kind, 'title')
-  const unitSingular = unitWord(asset.kind, 'singular')
+  const units = unitWord(asset, 'plural')
+  const unitsTitle = unitWord(asset, 'title')
+  const unitSingular = unitWord(asset, 'singular')
 
   return (
     <div className="stack" style={{ gap: '1rem' }}>
@@ -265,7 +288,7 @@ export function Investments() {
   const matches = useMemo(() => searchAssets(kind, query), [kind, query])
 
   /**
-   * Owned / register rows for the active Stocks/Crypto tab.
+   * Owned / register rows for the active Stocks / Crypto / Bullion tab.
    * Keep a row while shares are held (or both fields still present mid-edit), even if
    * Current price is temporarily blank/zero. Do not invent a live price from cost basis
    * for gain math — incomplete rows show "—" until price and shares are both valid again.
@@ -372,8 +395,9 @@ export function Investments() {
   }, [realizedPnl])
 
   const sessionKindTotal = realizedPnl.byKind[kind]
-  const sessionOtherKind: InvestmentKind = kind === 'stock' ? 'crypto' : 'stock'
-  const sessionOtherTotal = realizedPnl.byKind[sessionOtherKind]
+  const sessionCombinedTotal =
+    realizedPnl.byKind.stock + realizedPnl.byKind.crypto + realizedPnl.byKind.bullion
+  const sessionOtherTotal = sessionCombinedTotal - sessionKindTotal
   const sessionAssetHits = useMemo(() => {
     return Object.entries(realizedPnl.byAsset)
       .filter(([key]) => key.startsWith(`${kind}:`))
@@ -750,6 +774,15 @@ export function Investments() {
           >
             <span aria-hidden="true">₿</span> Crypto ({cryptos.length})
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={kind === 'bullion'}
+            className={kind === 'bullion' ? 'active' : undefined}
+            onClick={() => switchKind('bullion')}
+          >
+            <span aria-hidden="true">🥇</span> Bullion ({bullion.length})
+          </button>
         </div>
       </section>
 
@@ -862,25 +895,39 @@ export function Investments() {
               {formatSignedMoney(realizedPnl.byKind.crypto)}
             </span>
           </div>
-          <div className="session-pnl-bucket session-pnl-combined">
-            <span className="session-pnl-label">Combined</span>
+          <div className={`session-pnl-bucket ${kind === 'bullion' ? 'active' : ''}`}>
+            <span className="session-pnl-label">Bullion</span>
             <span
               className={`session-pnl-value ${
-                realizedPnl.byKind.stock + realizedPnl.byKind.crypto > 0
+                realizedPnl.byKind.bullion > 0
                   ? 'pot-up'
-                  : realizedPnl.byKind.stock + realizedPnl.byKind.crypto < 0
+                  : realizedPnl.byKind.bullion < 0
                     ? 'pot-down'
                     : ''
               }`}
             >
-              {formatSignedMoney(realizedPnl.byKind.stock + realizedPnl.byKind.crypto)}
+              {formatSignedMoney(realizedPnl.byKind.bullion)}
+            </span>
+          </div>
+          <div className="session-pnl-bucket session-pnl-combined">
+            <span className="session-pnl-label">Combined</span>
+            <span
+              className={`session-pnl-value ${
+                sessionCombinedTotal > 0
+                  ? 'pot-up'
+                  : sessionCombinedTotal < 0
+                    ? 'pot-down'
+                    : ''
+              }`}
+            >
+              {formatSignedMoney(sessionCombinedTotal)}
             </span>
           </div>
         </div>
         {sessionAssetHits.length > 0 && (
           <div className="session-pnl-assets">
             <div className="session-pnl-assets-label">
-              {kind === 'stock' ? 'Stock' : 'Crypto'} tickers with sells
+              {kindShort(kind)} tickers with sells
               {sessionOtherTotal !== 0 && (
                 <span className="session-pnl-other">
                   {' '}
@@ -919,7 +966,7 @@ export function Investments() {
         <section className="card owned-assets" aria-label="Owned assets">
           <div className="row owned-assets-header">
             <h3 className="section-title" style={{ margin: 0 }}>
-              Owned {kind === 'stock' ? 'stocks' : 'crypto'}
+              Owned {kindOwnedLabel(kind)}
             </h3>
             <span className="results-count spacer">{ownedRows.length}</span>
           </div>
@@ -960,7 +1007,7 @@ export function Investments() {
                     getAssetRealized(realizedPnl, row.asset.kind, row.asset.id)?.realized ?? 0
                   const realizedClass =
                     realized > 0 ? 'pot-up' : realized < 0 ? 'pot-down' : undefined
-                  const units = unitWord(row.asset.kind, 'plural')
+                  const units = unitWord(row.asset, 'plural')
                   const shareLabel =
                     row.shares > 0
                       ? `${row.shares.toLocaleString()} ${units}`
@@ -1062,12 +1109,12 @@ export function Investments() {
         <section className="card">
           <div className="row" style={{ marginBottom: '0.75rem' }}>
             <h3 className="section-title" style={{ margin: 0 }}>
-              {kind === 'stock' ? 'Stocks' : 'Cryptocurrencies'}
+              {kindTitle(kind)}
             </h3>
             <span className="results-count spacer">
               {query.trim()
                 ? `${matches.length} shown`
-                : `${kind === 'stock' ? stocks.length : cryptos.length} assets`}
+                : `${assetsCount(kind)} assets`}
             </span>
           </div>
 
@@ -1080,7 +1127,13 @@ export function Investments() {
               className="input"
               type="search"
               autoComplete="off"
-              placeholder={kind === 'stock' ? 'e.g. Tassla, Pineapple, MVIDIA…' : 'e.g. BTC, Solana…'}
+              placeholder={
+                kind === 'stock'
+                  ? 'e.g. Tassla, Pineapple, MVIDIA…'
+                  : kind === 'crypto'
+                    ? 'e.g. BTC, Solana…'
+                    : 'e.g. Gold, Silver, Diamonds…'
+              }
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onFocus={selectAllOnFocus}
@@ -1198,14 +1251,14 @@ export function Investments() {
 
               {selected && (
                 <div className="stat-card" style={{ margin: 0 }}>
-                  <div className="stat-label">{unitWord(selected.kind, 'title')} held</div>
+                  <div className="stat-label">{unitWord(selected, 'title')} held</div>
                   <div className="stat-value">
                     {shares != null ? shares.toLocaleString() : '0'}
                   </div>
                   <div className="stat-hint" style={{ marginTop: '0.35rem' }}>
                     {shares != null
                       ? 'Use BUY / SELL on the verdict (or the owned table) to change this position. Average cost updates automatically.'
-                      : `No position yet — enter a price, then tap BUY on the verdict to open ${unitWord(selected.kind, 'plural')} via the trade dialog.`}
+                      : `No position yet — enter a price, then tap BUY on the verdict to open ${unitWord(selected, 'plural')} via the trade dialog.`}
                   </div>
                 </div>
               )}

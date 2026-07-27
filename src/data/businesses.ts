@@ -15,7 +15,7 @@ export const businesses: BusinessMeta[] = [
     name: 'Investments',
     shortName: 'Investments',
     description:
-      'Stocks and cryptocurrencies — enter current price (and optional shares) for potential remaining and BUY / HOLD / SELL.',
+      'Stocks, cryptocurrencies, and bullion — enter current price (and optional units) for potential remaining and BUY / HOLD / SELL.',
     status: 'live',
     icon: '📈',
   },

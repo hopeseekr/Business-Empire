@@ -117,7 +117,7 @@ To host at the domain root instead, set `base: '/'` in `vite.config.ts` and rebu
 | **Clothing Brand → Overview** | Live | Launch rules, attributes, growth notes |
 | **Clothing Brand → Launch Helper** | Live | Type a collection name; get Style, Quality, Price, Audience |
 | **Clothing Brand → Collections** | Live | Full searchable/filterable collection database |
-| **Investments** | Live | Stocks & crypto trade helper: current price + optional shares → potential remaining and BUY / HOLD / SELL |
+| **Investments** | Live | Stocks, crypto & bullion trade helper: current price + optional units → potential remaining and BUY / HOLD / SELL |
 
 Collection data lives in:
 
@@ -128,6 +128,7 @@ Investment range data (your spreadsheet):
 
 - `investments-stocks.md` / `src/data/investments-stocks.json`
 - `investments-crypto.md` / `src/data/investments-crypto.json`
+- `investments-bullion.md` / `src/data/investments-bullion.json`
 
 ### Investments rules (from the spreadsheet)
 
@@ -162,6 +163,7 @@ BusinessEmpire/
 │   │   ├── collections.ts         # Search/filter helpers
 │   │   ├── investments-stocks.json
 │   │   ├── investments-crypto.json
+│   │   ├── investments-bullion.json
 │   │   ├── investments.ts         # Potential + BUY/HOLD/SELL logic
 │   │   └── businesses.ts
 │   └── pages/
@@ -172,6 +174,7 @@ BusinessEmpire/
 │       └── Investments.tsx
 ├── investments-stocks.md          # Source stock ranges
 ├── investments-crypto.md          # Source crypto ranges
+├── investments-bullion.md         # Source bullion ranges (Gold / Silver / Diamonds)
 └── public/                        # Webroot — created by npm run build
 ```
 

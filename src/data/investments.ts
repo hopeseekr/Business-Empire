@@ -1,9 +1,11 @@
 import stocksRaw from './investments-stocks.json'
 import cryptoRaw from './investments-crypto.json'
+import bullionRaw from './investments-bullion.json'
 import type {
   InvestmentAsset,
   InvestmentKind,
   InvestmentRaw,
+  InvestmentUnit,
   TradeAction,
   TradeAnalysis,
 } from '../types'
@@ -16,6 +18,20 @@ export function parseMoney(value: string | number): number {
   return Number.isFinite(n) ? n : NaN
 }
 
+function defaultUnit(kind: InvestmentKind, name: string): InvestmentUnit {
+  if (kind === 'crypto') return 'coin'
+  if (kind === 'bullion') {
+    return name.toLowerCase() === 'diamonds' ? 'carat' : 'ingot'
+  }
+  return 'share'
+}
+
+function resolveUnit(raw: InvestmentRaw, kind: InvestmentKind): InvestmentUnit {
+  const u = raw.unit
+  if (u === 'share' || u === 'coin' || u === 'ingot' || u === 'carat') return u
+  return defaultUnit(kind, raw.asset)
+}
+
 function toAsset(raw: InvestmentRaw, kind: InvestmentKind): InvestmentAsset {
   const max = parseMoney(raw.max)
   const min = parseMoney(raw.min)
@@ -23,6 +39,7 @@ function toAsset(raw: InvestmentRaw, kind: InvestmentKind): InvestmentAsset {
     id: raw.id,
     kind,
     name: raw.asset,
+    unit: resolveUnit(raw, kind),
     max,
     min,
     average: parseMoney(raw.average),
@@ -39,8 +56,14 @@ export const cryptos: InvestmentAsset[] = (cryptoRaw as InvestmentRaw[]).map((r)
   toAsset(r, 'crypto'),
 )
 
+export const bullion: InvestmentAsset[] = (bullionRaw as InvestmentRaw[]).map((r) =>
+  toAsset(r, 'bullion'),
+)
+
 export function assetsFor(kind: InvestmentKind): InvestmentAsset[] {
-  return kind === 'stock' ? stocks : cryptos
+  if (kind === 'stock') return stocks
+  if (kind === 'crypto') return cryptos
+  return bullion
 }
 
 export function searchAssets(kind: InvestmentKind, query: string): InvestmentAsset[] {

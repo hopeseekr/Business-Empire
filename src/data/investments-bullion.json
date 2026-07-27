@@ -1,0 +1,35 @@
+[
+  {
+    "id": 1,
+    "asset": "Gold",
+    "unit": "ingot",
+    "max": "$2,000.00",
+    "min": "$1,200.00",
+    "average": "$1,600.00",
+    "max_gain": "66.67%",
+    "now": "$1,550.00",
+    "potential": "29.03%"
+  },
+  {
+    "id": 2,
+    "asset": "Silver",
+    "unit": "ingot",
+    "max": "$50.00",
+    "min": "$25.00",
+    "average": "$37.50",
+    "max_gain": "100.00%",
+    "now": "$35.00",
+    "potential": "42.86%"
+  },
+  {
+    "id": 3,
+    "asset": "Diamonds",
+    "unit": "carat",
+    "max": "$15,000.00",
+    "min": "$8,000.00",
+    "average": "$11,500.00",
+    "max_gain": "87.50%",
+    "now": "$10,500.00",
+    "potential": "42.86%"
+  }
+]

@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type FocusEvent } from 'react'
 import { formatMoney, formatPct, parseUserNumber } from '../data/investments'
 import { formatSignedMoney } from '../data/realizedPnlStorage'
-import type { InvestmentAsset, InvestmentKind, TradeAction } from '../types'
+import type { InvestmentAsset, InvestmentKind, InvestmentUnit, TradeAction } from '../types'
 
 export interface TradePosition {
   asset: InvestmentAsset
@@ -19,16 +19,38 @@ export interface TradePosition {
 type AmountMode = 'shares' | 'dollars'
 type DialogStep = 'edit' | 'sell-confirm'
 
-/** User-facing unit for stock shares vs crypto coins. */
-export function unitWord(kind: InvestmentKind, form: 'singular' | 'plural' | 'title' = 'plural'): string {
-  if (kind === 'crypto') {
-    if (form === 'singular') return 'coin'
-    if (form === 'title') return 'Coins'
-    return 'coins'
-  }
-  if (form === 'singular') return 'share'
-  if (form === 'title') return 'Shares'
-  return 'shares'
+const UNIT_LABELS: Record<
+  InvestmentUnit,
+  { singular: string; plural: string; title: string }
+> = {
+  share: { singular: 'share', plural: 'shares', title: 'Shares' },
+  coin: { singular: 'coin', plural: 'coins', title: 'Coins' },
+  ingot: { singular: 'ingot', plural: 'ingots', title: 'Ingots' },
+  carat: { singular: 'carat', plural: 'carats', title: 'Carats' },
+}
+
+/** Default unit when only the market kind is known (no specific asset). */
+export function defaultUnitForKind(kind: InvestmentKind): InvestmentUnit {
+  if (kind === 'crypto') return 'coin'
+  if (kind === 'bullion') return 'ingot'
+  return 'share'
+}
+
+/**
+ * User-facing quantity unit.
+ * Pass an asset for per-ticker units (e.g. bullion: Gold/Silver = ingots, Diamonds = carats),
+ * or a kind for generic copy (bullion defaults to ingots).
+ */
+export function unitWord(
+  source: InvestmentAsset | InvestmentKind,
+  form: 'singular' | 'plural' | 'title' = 'plural',
+): string {
+  const unit: InvestmentUnit =
+    typeof source === 'string' ? defaultUnitForKind(source) : source.unit
+  const labels = UNIT_LABELS[unit]
+  if (form === 'singular') return labels.singular
+  if (form === 'title') return labels.title
+  return labels.plural
 }
 
 function sanitizeDecimalInput(value: string): string {
@@ -93,8 +115,8 @@ export function TradeDialog({
   const [error, setError] = useState<string | null>(null)
 
   const { asset, shares: held } = position
-  const units = unitWord(asset.kind, 'plural')
-  const unitsTitle = unitWord(asset.kind, 'title')
+  const units = unitWord(asset, 'plural')
+  const unitsTitle = unitWord(asset, 'title')
 
   /** Live price from the editable field (drives conversions + fills). */
   const price = useMemo(() => {
