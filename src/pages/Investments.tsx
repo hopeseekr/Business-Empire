@@ -20,6 +20,14 @@ import {
   upsertEntry,
   type StoredAssetEntry,
 } from '../data/investmentStorage'
+import {
+  formatSignedMoney,
+  getAssetRealized,
+  loadRealizedPnl,
+  recordRealizedSell,
+  saveRealizedPnl,
+  type RealizedPnlState,
+} from '../data/realizedPnlStorage'
 import type { InvestmentAsset, InvestmentKind, TradeAction, TradeAnalysis } from '../types'
 
 interface OwnedRow {
@@ -220,6 +228,7 @@ export function Investments() {
   const [focusedAsset, setFocusedAsset] = useState<string | null>(null)
   const [focusPriceRequest, setFocusPriceRequest] = useState(0)
   const [tradePosition, setTradePosition] = useState<OwnedRow | null>(null)
+  const [realizedPnl, setRealizedPnl] = useState<RealizedPnlState>(() => loadRealizedPnl())
   const priceInputRef = useRef<HTMLInputElement>(null)
 
   const matches = useMemo(() => searchAssets(kind, query).slice(0, 40), [kind, query])
@@ -275,6 +284,21 @@ export function Investments() {
       entries,
     })
   }, [kind, selectedIds, entries])
+
+  // Session realized P&L (tab-scoped).
+  useEffect(() => {
+    saveRealizedPnl(realizedPnl)
+  }, [realizedPnl])
+
+  const sessionKindTotal = realizedPnl.byKind[kind]
+  const sessionOtherKind: InvestmentKind = kind === 'stock' ? 'crypto' : 'stock'
+  const sessionOtherTotal = realizedPnl.byKind[sessionOtherKind]
+  const sessionAssetHits = useMemo(() => {
+    return Object.entries(realizedPnl.byAsset)
+      .filter(([key]) => key.startsWith(`${kind}:`))
+      .map(([key, stats]) => ({ key, ...stats }))
+      .sort((a, b) => Math.abs(b.realized) - Math.abs(a.realized))
+  }, [realizedPnl, kind])
 
   useEffect(() => {
     if (focusPriceRequest > 0) {
@@ -340,7 +364,22 @@ export function Investments() {
 
   const handleTradeSell = (sharesToSell: number) => {
     if (!tradePosition || !(sharesToSell > 0)) return
-    const next = Math.max(0, tradePosition.shares - sharesToSell)
+    const sold = Math.min(sharesToSell, tradePosition.shares)
+    if (!(sold > 0)) return
+
+    setRealizedPnl((prev) =>
+      recordRealizedSell(
+        prev,
+        tradePosition.asset.kind,
+        tradePosition.asset.id,
+        tradePosition.asset.name,
+        tradePosition.price,
+        tradePosition.firstPrice,
+        sold,
+      ),
+    )
+
+    const next = Math.max(0, tradePosition.shares - sold)
     applyShareDelta(tradePosition.asset, tradePosition.price, next)
     setTradePosition(null)
   }
@@ -429,6 +468,95 @@ export function Investments() {
         </div>
       </section>
 
+      <section className="card session-pnl" aria-label="Session realized gains and losses">
+        <div className="row session-pnl-header">
+          <h3 className="section-title" style={{ margin: 0 }}>
+            Session realized P&amp;L
+          </h3>
+          <span className="results-count spacer">sessionStorage · this tab</span>
+        </div>
+        <div className="session-pnl-buckets">
+          <div className={`session-pnl-bucket ${kind === 'stock' ? 'active' : ''}`}>
+            <span className="session-pnl-label">Stocks</span>
+            <span
+              className={`session-pnl-value ${
+                realizedPnl.byKind.stock > 0
+                  ? 'pot-up'
+                  : realizedPnl.byKind.stock < 0
+                    ? 'pot-down'
+                    : ''
+              }`}
+            >
+              {formatSignedMoney(realizedPnl.byKind.stock)}
+            </span>
+          </div>
+          <div className={`session-pnl-bucket ${kind === 'crypto' ? 'active' : ''}`}>
+            <span className="session-pnl-label">Crypto</span>
+            <span
+              className={`session-pnl-value ${
+                realizedPnl.byKind.crypto > 0
+                  ? 'pot-up'
+                  : realizedPnl.byKind.crypto < 0
+                    ? 'pot-down'
+                    : ''
+              }`}
+            >
+              {formatSignedMoney(realizedPnl.byKind.crypto)}
+            </span>
+          </div>
+          <div className="session-pnl-bucket session-pnl-combined">
+            <span className="session-pnl-label">Combined</span>
+            <span
+              className={`session-pnl-value ${
+                realizedPnl.byKind.stock + realizedPnl.byKind.crypto > 0
+                  ? 'pot-up'
+                  : realizedPnl.byKind.stock + realizedPnl.byKind.crypto < 0
+                    ? 'pot-down'
+                    : ''
+              }`}
+            >
+              {formatSignedMoney(realizedPnl.byKind.stock + realizedPnl.byKind.crypto)}
+            </span>
+          </div>
+        </div>
+        {sessionAssetHits.length > 0 && (
+          <div className="session-pnl-assets">
+            <div className="session-pnl-assets-label">
+              {kind === 'stock' ? 'Stock' : 'Crypto'} tickers this session
+              {sessionOtherTotal !== 0 && (
+                <span className="session-pnl-other">
+                  {' '}
+                  · other book {formatSignedMoney(sessionOtherTotal)}
+                </span>
+              )}
+            </div>
+            <ul className="session-pnl-asset-list">
+              {sessionAssetHits.map((a) => (
+                <li key={a.key}>
+                  <span className="session-pnl-asset-name">{a.name}</span>
+                  <span
+                    className={
+                      a.realized > 0 ? 'pot-up' : a.realized < 0 ? 'pot-down' : undefined
+                    }
+                  >
+                    {formatSignedMoney(a.realized)}
+                  </span>
+                  <span className="session-pnl-sells">
+                    {a.sellCount} sell{a.sellCount === 1 ? '' : 's'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {sessionAssetHits.length === 0 && sessionKindTotal === 0 && (
+          <p className="session-pnl-empty">
+            Realized gains and losses post when you <strong>SELL</strong> via the trade dialog.
+            Totals reset when this browser tab closes.
+          </p>
+        )}
+      </section>
+
       {ownedRows.length > 0 && (
         <section className="card owned-assets" aria-label="Owned assets">
           <div className="row owned-assets-header">
@@ -444,7 +572,8 @@ export function Investments() {
                   <th scope="col">Asset</th>
                   <th scope="col">Last price</th>
                   <th scope="col">Total inv.</th>
-                  <th scope="col">Gain / loss</th>
+                  <th scope="col">Unrealized</th>
+                  <th scope="col">Realized</th>
                   <th scope="col">Max potential</th>
                   <th scope="col">Action</th>
                 </tr>
@@ -467,6 +596,10 @@ export function Investments() {
                     : gainNegative
                       ? 'pot-down'
                       : undefined
+                  const realized =
+                    getAssetRealized(realizedPnl, row.asset.kind, row.asset.id)?.realized ?? 0
+                  const realizedClass =
+                    realized > 0 ? 'pot-up' : realized < 0 ? 'pot-down' : undefined
                   return (
                     <tr
                       key={`${row.asset.kind}-${row.asset.id}`}
@@ -481,6 +614,9 @@ export function Investments() {
                       <td className={`num-cell ${gainClass ?? ''}`.trim()}>
                         {formatMoney(row.gainLoss)}{' '}
                         <span className="pot-pct">({formatPct(row.gainLossPct)})</span>
+                      </td>
+                      <td className={`num-cell ${realizedClass ?? ''}`.trim()}>
+                        {formatSignedMoney(realized)}
                       </td>
                       <td className={`num-cell ${potPositive ? 'pot-up' : 'pot-down'}`}>
                         {formatMoney(row.maxPotential)}{' '}
@@ -512,6 +648,10 @@ export function Investments() {
       {tradePosition && (
         <TradeDialog
           position={tradePosition}
+          sessionRealized={
+            getAssetRealized(realizedPnl, tradePosition.asset.kind, tradePosition.asset.id)
+              ?.realized ?? 0
+          }
           onClose={() => setTradePosition(null)}
           onBuy={handleTradeBuy}
           onSell={handleTradeSell}

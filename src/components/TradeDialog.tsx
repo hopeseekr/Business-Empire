@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type FocusEvent } from 'react'
 import { formatMoney, formatPct, parseUserNumber } from '../data/investments'
+import { formatSignedMoney } from '../data/realizedPnlStorage'
 import type { InvestmentAsset, TradeAction } from '../types'
 
 export interface TradePosition {
@@ -52,11 +53,14 @@ function selectAllOnFocus(e: FocusEvent<HTMLInputElement>) {
 
 export function TradeDialog({
   position,
+  sessionRealized = 0,
   onClose,
   onBuy,
   onSell,
 }: {
   position: TradePosition
+  /** Cumulative realized P&L for this ticker in the current browser tab session. */
+  sessionRealized?: number
   onClose: () => void
   onBuy: (shares: number) => void
   onSell: (shares: number) => void
@@ -222,7 +226,7 @@ export function TradeDialog({
               <span className="trade-record-value">{formatMoney(position.totalInvestment)}</span>
             </div>
             <div>
-              <span className="trade-record-label">Gain / loss</span>
+              <span className="trade-record-label">Unrealized</span>
               <span
                 className={`trade-record-value ${
                   position.gainLoss > 0 ? 'pot-up' : position.gainLoss < 0 ? 'pot-down' : ''
@@ -230,6 +234,16 @@ export function TradeDialog({
               >
                 {formatMoney(position.gainLoss)}{' '}
                 <span className="pot-pct">({formatPct(position.gainLossPct)})</span>
+              </span>
+            </div>
+            <div>
+              <span className="trade-record-label">Session realized</span>
+              <span
+                className={`trade-record-value ${
+                  sessionRealized > 0 ? 'pot-up' : sessionRealized < 0 ? 'pot-down' : ''
+                }`}
+              >
+                {formatSignedMoney(sessionRealized)}
               </span>
             </div>
             <div>
