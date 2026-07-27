@@ -89,18 +89,19 @@ The app is configured for:
 https://ai.autonomo.codes/business-empire/
 ```
 
-`vite.config.ts` sets `base: '/business-empire/'`, and React Router uses that same base for client routes. After build, asset URLs look like `/business-empire/assets/…`.
+`vite.config.ts` sets `base: '/business-empire/'` so asset URLs look like `/business-empire/assets/…` after build.
+
+**Routing:** the app uses **hash routing** (`HashRouter`). Live URLs look like:
+
+```text
+https://ai.autonomo.codes/business-empire/#/
+https://ai.autonomo.codes/business-empire/#/investments
+https://ai.autonomo.codes/business-empire/#/clothing/launch
+```
+
+The part after `#` never reaches the server, so a hard refresh only requests `/business-empire/` (or `index.html`). No SPA `try_files` / fallback rewrite is required on the host.
 
 **Deploy:** put the *contents* of `public/` on the server at the path that serves `/business-empire/` (not at the domain root).
-
-**SPA fallback:** the server must serve `index.html` for client routes under that path, e.g. `/business-empire/investments` → the app’s `index.html`. Example Nginx:
-
-```nginx
-location /business-empire/ {
-  alias /var/www/business-empire/;   # folder that contains index.html + assets/
-  try_files $uri $uri/ /business-empire/index.html;
-}
-```
 
 To host at the domain root instead, set `base: '/'` in `vite.config.ts` and rebuild.
 

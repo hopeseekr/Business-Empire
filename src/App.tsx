@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Dashboard } from './pages/Dashboard'
 import { ClothingOverview } from './pages/ClothingOverview'
@@ -6,12 +6,14 @@ import { LaunchHelper } from './pages/LaunchHelper'
 import { Collections } from './pages/Collections'
 import { Investments } from './pages/Investments'
 
-// Vite injects base from vite.config (e.g. "/business-empire/"); Router wants no trailing slash
-const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
-
+/**
+ * HashRouter keeps routes after `#` (e.g. /business-empire/#/investments).
+ * The server only ever sees /business-empire/ (or index.html), so a hard
+ * refresh never 404s/500s when SPA try_files is missing on the host.
+ */
 export default function App() {
   return (
-    <BrowserRouter basename={basename === '/' ? undefined : basename}>
+    <HashRouter>
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
@@ -22,6 +24,6 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
