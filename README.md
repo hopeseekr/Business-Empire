@@ -218,4 +218,6 @@ npm run build
 
 ## License
 
-Private project for personal use with Business Empire: RichMan. Not affiliated with the game’s developers.
+This project is licensed under [Creative Commons Attribution-NoDerivatives 4.0 International (CC BY-ND 4.0)](https://creativecommons.org/licenses/by-nd/4.0/). See [LICENSE.md](LICENSE.md) for details.
+
+Not affiliated with the developers of Business Empire: RichMan.
