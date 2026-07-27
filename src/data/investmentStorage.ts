@@ -1,11 +1,17 @@
 import type { InvestmentAsset, InvestmentKind } from '../types'
-import { assetsFor } from './investments'
+import { assetsFor, parseUserNumber } from './investments'
 
 const STORAGE_KEY = 'business-empire.investments.v1'
 
 export interface StoredAssetEntry {
+  /** Latest price the user entered. */
   price: string
   shares: string
+  /**
+   * First valid price ever recorded for this asset (cost basis).
+   * Set once and never overwritten by later price edits.
+   */
+  firstPrice?: string
 }
 
 export interface InvestmentPrefs {
@@ -40,7 +46,25 @@ function isKind(value: unknown): value is InvestmentKind {
 function isEntry(value: unknown): value is StoredAssetEntry {
   if (!value || typeof value !== 'object') return false
   const v = value as Record<string, unknown>
-  return typeof v.price === 'string' && typeof v.shares === 'string'
+  if (typeof v.price !== 'string' || typeof v.shares !== 'string') return false
+  if (v.firstPrice !== undefined && typeof v.firstPrice !== 'string') return false
+  return true
+}
+
+function isValidPriceString(raw: string | undefined): raw is string {
+  if (!raw || !raw.trim()) return false
+  const n = parseUserNumber(raw)
+  return n != null && n > 0
+}
+
+/**
+ * Resolve cost-basis first price for an entry.
+ * Existing entries without firstPrice treat the stored price as the baseline.
+ */
+export function resolveFirstPrice(entry: StoredAssetEntry): string | undefined {
+  if (isValidPriceString(entry.firstPrice)) return entry.firstPrice.trim()
+  if (isValidPriceString(entry.price)) return entry.price.trim()
+  return undefined
 }
 
 /** Load investment prefs from localStorage; falls back to defaults on missing/corrupt data. */
@@ -62,8 +86,12 @@ export function loadInvestmentPrefs(): InvestmentPrefs {
     const entries: Record<string, StoredAssetEntry> = {}
     if (parsed.entries && typeof parsed.entries === 'object') {
       for (const [key, value] of Object.entries(parsed.entries)) {
-        if (isEntry(value)) {
-          entries[key] = { price: value.price, shares: value.shares }
+        if (!isEntry(value)) continue
+        const firstPrice = resolveFirstPrice(value)
+        entries[key] = {
+          price: value.price,
+          shares: value.shares,
+          ...(firstPrice ? { firstPrice } : {}),
         }
       }
     }
@@ -100,7 +128,11 @@ export function getStoredEntry(
   return entries[assetStorageKey(kind, id)] ?? { price: '', shares: '' }
 }
 
-/** Update or remove an entry; empty price+shares deletes the key. */
+/**
+ * Update or remove an entry.
+ * Empty price+shares deletes the key.
+ * firstPrice is set on the first valid price and never overwritten afterward.
+ */
 export function upsertEntry(
   entries: Record<string, StoredAssetEntry>,
   kind: InvestmentKind,
@@ -115,5 +147,18 @@ export function upsertEntry(
     delete next[key]
     return next
   }
-  return { ...entries, [key]: { price, shares } }
+
+  const prev = entries[key]
+  const existingFirst = prev ? resolveFirstPrice(prev) : undefined
+  const firstPrice =
+    existingFirst ?? (isValidPriceString(price) ? price.trim() : undefined)
+
+  return {
+    ...entries,
+    [key]: {
+      price,
+      shares,
+      ...(firstPrice ? { firstPrice } : {}),
+    },
+  }
 }

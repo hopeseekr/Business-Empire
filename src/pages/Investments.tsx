@@ -13,6 +13,7 @@ import {
   assetStorageKey,
   getStoredEntry,
   loadInvestmentPrefs,
+  resolveFirstPrice,
   resolveStoredAsset,
   saveInvestmentPrefs,
   upsertEntry,
@@ -23,8 +24,11 @@ import type { InvestmentAsset, InvestmentKind, TradeAction, TradeAnalysis } from
 interface OwnedRow {
   asset: InvestmentAsset
   price: number
+  firstPrice: number
   shares: number
   totalInvestment: number
+  gainLoss: number
+  gainLossPct: number
   maxPotential: number
   potentialPct: number
   action: TradeAction
@@ -222,12 +226,23 @@ export function Investments() {
       if (priceVal == null || priceVal <= 0) continue
       if (sharesVal == null || sharesVal <= 0) continue
 
+      const firstRaw = resolveFirstPrice(entry)
+      const firstPriceVal = firstRaw ? parseUserNumber(firstRaw) : null
+      if (firstPriceVal == null || firstPriceVal <= 0) continue
+
       const analysis = analyzeTrade(asset, priceVal, sharesVal)
+      const totalInvestment = analysis.positionValue ?? priceVal * sharesVal
+      const gainLoss = (priceVal - firstPriceVal) * sharesVal
+      const gainLossPct = ((priceVal - firstPriceVal) / firstPriceVal) * 100
+
       rows.push({
         asset,
         price: priceVal,
+        firstPrice: firstPriceVal,
         shares: sharesVal,
-        totalInvestment: analysis.positionValue ?? priceVal * sharesVal,
+        totalInvestment,
+        gainLoss,
+        gainLossPct,
         maxPotential: analysis.totalUpside ?? (asset.max - priceVal) * sharesVal,
         potentialPct: analysis.potentialPct,
         action: analysis.action,
@@ -360,6 +375,7 @@ export function Investments() {
                   <th scope="col">Asset</th>
                   <th scope="col">Last price</th>
                   <th scope="col">Total inv.</th>
+                  <th scope="col">Gain / loss</th>
                   <th scope="col">Max potential</th>
                   <th scope="col">Action</th>
                 </tr>
@@ -375,17 +391,28 @@ export function Investments() {
                         ? 'action-sell'
                         : 'action-hold'
                   const potPositive = row.maxPotential >= 0
+                  const gainPositive = row.gainLoss > 0
+                  const gainNegative = row.gainLoss < 0
+                  const gainClass = gainPositive
+                    ? 'pot-up'
+                    : gainNegative
+                      ? 'pot-down'
+                      : undefined
                   return (
                     <tr
                       key={`${row.asset.kind}-${row.asset.id}`}
                       className={isSelected ? 'selected' : undefined}
                       style={{ cursor: 'pointer' }}
                       onClick={() => selectAsset(row.asset)}
-                      title={`${row.shares.toLocaleString()} shares · click to edit`}
+                      title={`${row.shares.toLocaleString()} shares · first price ${formatMoney(row.firstPrice)} · click to edit`}
                     >
                       <td className="collection-name">{row.asset.name}</td>
                       <td className="num-cell">{formatMoney(row.price)}</td>
                       <td className="num-cell">{formatMoney(row.totalInvestment)}</td>
+                      <td className={`num-cell ${gainClass ?? ''}`.trim()}>
+                        {formatMoney(row.gainLoss)}{' '}
+                        <span className="pot-pct">({formatPct(row.gainLossPct)})</span>
+                      </td>
                       <td className={`num-cell ${potPositive ? 'pot-up' : 'pot-down'}`}>
                         {formatMoney(row.maxPotential)}{' '}
                         <span className="pot-pct">({formatPct(row.potentialPct)})</span>
