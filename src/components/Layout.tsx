@@ -49,7 +49,7 @@ export function Layout() {
                 className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                 onClick={close}
               >
-                <span className="nav-icon">🏠</span>
+                <span className="nav-icon" aria-hidden="true">🏠</span>
                 Dashboard
               </NavLink>
             </li>
@@ -66,7 +66,9 @@ export function Layout() {
                   className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                   onClick={close}
                 >
-                  <span className="nav-icon">{b.icon}</span>
+                <span className="nav-icon" aria-hidden="true">
+                  {b.icon}
+                </span>
                   {b.shortName}
                   {b.status === 'coming-soon' && <span className="badge-soon">Soon</span>}
                 </NavLink>
@@ -87,7 +89,7 @@ export function Layout() {
                     className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                     onClick={close}
                   >
-                    <span className="nav-icon">📊</span>
+                    <span className="nav-icon" aria-hidden="true">📊</span>
                     Overview
                   </NavLink>
                 </li>
@@ -97,7 +99,7 @@ export function Layout() {
                     className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                     onClick={close}
                   >
-                    <span className="nav-icon">🚀</span>
+                    <span className="nav-icon" aria-hidden="true">🚀</span>
                     Launch Helper
                   </NavLink>
                 </li>
@@ -107,7 +109,7 @@ export function Layout() {
                     className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                     onClick={close}
                   >
-                    <span className="nav-icon">📚</span>
+                    <span className="nav-icon" aria-hidden="true">📚</span>
                     All Collections
                   </NavLink>
                 </li>
@@ -128,7 +130,7 @@ export function Layout() {
                     className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                     onClick={close}
                   >
-                    <span className="nav-icon">🎯</span>
+                    <span className="nav-icon" aria-hidden="true">🎯</span>
                     Trade Helper
                   </NavLink>
                 </li>
@@ -154,7 +156,7 @@ export function Layout() {
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
             >
-              ☰
+              <span aria-hidden="true">☰</span>
             </button>
             <h1 className="topbar-title">{title}</h1>
           </div>

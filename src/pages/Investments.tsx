@@ -145,6 +145,7 @@ export function Investments() {
   const [selected, setSelected] = useState<InvestmentAsset | null>(null)
   const [priceInput, setPriceInput] = useState('')
   const [sharesInput, setSharesInput] = useState('')
+  const [focusedAsset, setFocusedAsset] = useState<string | null>(null)
 
   const matches = useMemo(() => searchAssets(kind, query).slice(0, 40), [kind, query])
 
@@ -181,7 +182,7 @@ export function Investments() {
   return (
     <div className="stack">
       <section className="hero-banner">
-        <h1>📈 Investments</h1>
+        <h1><span aria-hidden="true">📈</span> Investments</h1>
         <p>
           Plug in the in-game <strong style={{ color: 'var(--text)' }}>current price</strong> (and
           optionally how many shares you hold). The app computes remaining upside to your tracked
@@ -196,7 +197,7 @@ export function Investments() {
             className={kind === 'stock' ? 'active' : undefined}
             onClick={() => setKind('stock')}
           >
-            📊 Stocks ({stocks.length})
+            <span aria-hidden="true">📊</span> Stocks ({stocks.length})
           </button>
           <button
             type="button"
@@ -205,7 +206,7 @@ export function Investments() {
             className={kind === 'crypto' ? 'active' : undefined}
             onClick={() => setKind('crypto')}
           >
-            ₿ Crypto ({cryptos.length})
+            <span aria-hidden="true">₿</span> Crypto ({cryptos.length})
           </button>
         </div>
       </section>
@@ -243,10 +244,10 @@ export function Investments() {
             <table className="collections">
               <thead>
                 <tr>
-                  <th>Asset</th>
-                  <th>Min</th>
-                  <th>Avg</th>
-                  <th>Max</th>
+                  <th scope="col">Asset</th>
+                  <th scope="col">Min</th>
+                  <th scope="col">Avg</th>
+                  <th scope="col">Max</th>
                 </tr>
               </thead>
               <tbody>
@@ -256,8 +257,27 @@ export function Investments() {
                     <tr
                       key={`${a.kind}-${a.id}`}
                       className={isSelected ? 'selected' : undefined}
-                      style={{ cursor: 'pointer' }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Select ${a.name}`}
+                      aria-selected={isSelected}
+                      style={{
+                        cursor: 'pointer',
+                        outline:
+                          focusedAsset === `${a.kind}-${a.id}`
+                            ? '2px solid var(--accent)'
+                            : undefined,
+                        outlineOffset: '-2px',
+                      }}
                       onClick={() => selectAsset(a)}
+                      onFocus={() => setFocusedAsset(`${a.kind}-${a.id}`)}
+                      onBlur={() => setFocusedAsset(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          selectAsset(a)
+                        }
+                      }}
                     >
                       <td className="collection-name">{a.name}</td>
                       <td style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>

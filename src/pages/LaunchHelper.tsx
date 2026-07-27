@@ -38,6 +38,7 @@ function AnswerPanel({ collection }: { collection: ClothingCollection }) {
 export function LaunchHelper() {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<ClothingCollection | null>(null)
+  const [focusedMatch, setFocusedMatch] = useState<string | null>(null)
 
   const matches = useMemo(() => searchCollections(query).slice(0, 12), [query])
 
@@ -51,7 +52,7 @@ export function LaunchHelper() {
     <div className="stack">
       <section className="card">
         <h2 className="section-title" style={{ marginBottom: '0.35rem' }}>
-          🚀 Launch Helper
+          <span aria-hidden="true">🚀</span> Launch Helper
         </h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
           Type the collection name from the game. Tap a match to lock in the perfect Style, Quality,
@@ -107,8 +108,8 @@ export function LaunchHelper() {
               <table className="collections">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Style</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Style</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -123,8 +124,24 @@ export function LaunchHelper() {
                       <tr
                         key={`${c.name}-${c.style}-${c.price}-${i}`}
                         className={isSelected ? 'selected' : undefined}
-                        style={{ cursor: 'pointer' }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Select ${c.name}`}
+                        aria-selected={isSelected}
+                        style={{
+                          cursor: 'pointer',
+                          outline: focusedMatch === c.name ? '2px solid var(--accent)' : undefined,
+                          outlineOffset: '-2px',
+                        }}
                         onClick={() => setSelected(c)}
+                        onFocus={() => setFocusedMatch(c.name)}
+                        onBlur={() => setFocusedMatch(null)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setSelected(c)
+                          }
+                        }}
                       >
                         <td className="collection-name">{c.name}</td>
                         <td>
