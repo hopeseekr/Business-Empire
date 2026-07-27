@@ -2,7 +2,7 @@
 
 A web companion for the Android game **Business Empire: RichMan**. Look up perfect Clothing Brand collection launches, browse every collection’s attributes, and run the Investments trade helper (potential remaining + BUY / HOLD / SELL) from your multi-year stock & crypto range table.
 
-**Theme:** Dark UI inspired by [ai.autonomo.codes](https://ai.autonomo.codes/) — background `#212a35`, green accents (`#81c784` / `#4CAF50`), orange CTAs (`#fc841f`).
+**Live Utility:** https://ai.autonomo.codes/business-empire/
 
 ---
 
