@@ -33,6 +33,22 @@ function actionMeta(action: TradeAction): { label: string; hint: string; classNa
   }
 }
 
+function sanitizeDecimalInput(value: string): string {
+  let result = ''
+  let hasDecimal = false
+
+  for (const character of value) {
+    if (/\d/.test(character)) {
+      result += character
+    } else if (character === '.' && !hasDecimal) {
+      result += character
+      hasDecimal = true
+    }
+  }
+
+  return result
+}
+
 function VerdictPanel({
   asset,
   analysis,
@@ -351,7 +367,7 @@ export function Investments() {
                   disabled={!selected}
                   placeholder={selected ? `e.g. ${selected.lastNow}` : 'Select an asset first'}
                   value={priceInput}
-                  onChange={(e) => setPriceInput(e.target.value)}
+                  onChange={(e) => setPriceInput(sanitizeDecimalInput(e.target.value))}
                   onFocus={selectAllOnFocus}
                 />
                 {priceError && <div className="field-error">{priceError}</div>}
@@ -370,7 +386,7 @@ export function Investments() {
                   disabled={!selected}
                   placeholder="Leave blank if you don’t hold any"
                   value={sharesInput}
-                  onChange={(e) => setSharesInput(e.target.value)}
+                  onChange={(e) => setSharesInput(sanitizeDecimalInput(e.target.value))}
                   onFocus={selectAllOnFocus}
                 />
                 <div className="stat-hint" style={{ marginTop: '0.25rem' }}>
