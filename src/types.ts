@@ -31,7 +31,12 @@ export interface InvestmentRaw {
   max: string
   min: string
   average: string
-  max_gain: string
+  /** Dividend / period yield (stocks). */
+  yield?: string
+  /** Outstanding share count (stocks). */
+  shares?: number
+  /** Historical band gain label (crypto / bullion). */
+  max_gain?: string
   now: string
   potential: string
   recommendation?: string
