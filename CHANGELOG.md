@@ -1,3 +1,17 @@
+## v1.4.0
+
+* **[2026-07-28 11:21:55 EEST]** Replace the average metric with distance from minimum.
+* **[2026-07-28 11:08:58 EEST]** Prioritize owned investments in the Bulk Screener.
+* **[2026-07-28 11:03:13 EEST]** Make Bulk Screener comparison columns sortable.
+* **[2026-07-28 10:58:51 EEST]** Default the Bulk Screener to descending yield.
+* **[2026-07-28 10:38:25 EEST]** Add a sortable Yield column to the Bulk Screening stocks tab.
+* **[2026-07-28 10:32:13 EEST]** Add Bulk Screening for rapid whole-market price entry.
+* **[2026-07-28 10:07:08 EEST]** Add AGENTS.md requiring auto-commit after each feature.
+* **[2026-07-28 10:06:45 EEST]** Remove static potential field from investment JSON.
+* **[2026-07-28 10:05:10 EEST]** Rename stock max_gain to yield and add outstanding shares.
+* **[2026-07-28 09:59:12 EEST]** Recalculate stock averages as midpoint of min and max.
+* **[2026-07-28 02:03:12 EEST]** Updated the stocks min/max based on latest research.
+
 ## v1.3.0
 
 * **[2026-07-27 17:08:39 EEST]** Lower Viza stock min range to $183.47.
