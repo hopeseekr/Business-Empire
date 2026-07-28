@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { TradeDialog, formatShares, unitWord } from '../components/TradeDialog'
 import {
   analyzeTrade,
@@ -8,6 +9,7 @@ import {
   formatMoney,
   formatPct,
   parseUserNumber,
+  sanitizeDecimalInput,
   searchAssets,
   stocks,
 } from '../data/investments'
@@ -106,22 +108,6 @@ function actionMeta(
         className: 'action-hold',
       }
   }
-}
-
-function sanitizeDecimalInput(value: string): string {
-  let result = ''
-  let hasDecimal = false
-
-  for (const character of value) {
-    if (/\d/.test(character)) {
-      result += character
-    } else if (character === '.' && !hasDecimal) {
-      result += character
-      hasDecimal = true
-    }
-  }
-
-  return result
 }
 
 function VerdictPanel({
@@ -755,34 +741,39 @@ export function Investments() {
           the same rules as your multi-year spreadsheet.
         </p>
 */}
-        <div className="segmented" role="tablist" aria-label="Asset type">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={kind === 'stock'}
-            className={kind === 'stock' ? 'active' : undefined}
-            onClick={() => switchKind('stock')}
-          >
-            <span aria-hidden="true">📊</span> Stocks ({stocks.length})
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={kind === 'crypto'}
-            className={kind === 'crypto' ? 'active' : undefined}
-            onClick={() => switchKind('crypto')}
-          >
-            <span aria-hidden="true">₿</span> Crypto ({cryptos.length})
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={kind === 'bullion'}
-            className={kind === 'bullion' ? 'active' : undefined}
-            onClick={() => switchKind('bullion')}
-          >
-            <span aria-hidden="true">🥇</span> Bullion ({bullion.length})
-          </button>
+        <div className="row">
+          <div className="segmented" role="tablist" aria-label="Asset type">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={kind === 'stock'}
+              className={kind === 'stock' ? 'active' : undefined}
+              onClick={() => switchKind('stock')}
+            >
+              <span aria-hidden="true">📊</span> Stocks ({stocks.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={kind === 'crypto'}
+              className={kind === 'crypto' ? 'active' : undefined}
+              onClick={() => switchKind('crypto')}
+            >
+              <span aria-hidden="true">₿</span> Crypto ({cryptos.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={kind === 'bullion'}
+              className={kind === 'bullion' ? 'active' : undefined}
+              onClick={() => switchKind('bullion')}
+            >
+              <span aria-hidden="true">🥇</span> Bullion ({bullion.length})
+            </button>
+          </div>
+          <Link to="/investments/screening" className="btn btn-ghost btn-sm" title="Bulk Screening">
+            <span aria-hidden="true">⚡</span> Bulk Screener
+          </Link>
         </div>
       </section>
 

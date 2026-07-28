@@ -1847,6 +1847,247 @@ button.verdict-banner-clickable:focus-visible {
   }
 }
 
+/* ── Bulk screening (rapid price entry) ── */
+
+.screening-summary {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  padding: 0.85rem 1.1rem;
+}
+
+.screening-progress-label {
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.screening-progress-track {
+  margin-top: 0.4rem;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.screening-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-strong), var(--accent));
+  transition: width 0.18s ease;
+}
+
+.screening-tallies {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.screening-tally {
+  min-width: 3.75rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.screening-tally.action-buy {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-color: rgba(129, 199, 132, 0.35);
+}
+
+.screening-tally.action-hold {
+  color: var(--cta);
+  background: var(--cta-soft);
+  border-color: rgba(252, 132, 31, 0.35);
+}
+
+.screening-tally.action-sell {
+  color: var(--danger);
+  background: rgba(239, 83, 80, 0.14);
+  border-color: rgba(239, 83, 80, 0.35);
+}
+
+.screening-tally-value {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.screening-tally-label {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+
+.screening-summary-actions {
+  justify-self: end;
+}
+
+.screening-opportunities {
+  padding: 0.75rem 1.1rem 0.85rem;
+}
+
+.screening-opportunity-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: opportunity;
+}
+
+.screening-opportunity-list li {
+  counter-increment: opportunity;
+  display: grid;
+  grid-template-columns: 1.5rem minmax(6rem, 1fr) auto auto auto;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.screening-opportunity-list li:last-child {
+  border-bottom: 0;
+}
+
+.screening-opportunity-list li::before {
+  content: counter(opportunity);
+  color: var(--text-dim);
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.screening-opportunity-name {
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.screening-opportunity-price {
+  color: var(--text-secondary);
+}
+
+.screening-card {
+  padding: 0.75rem 1.1rem 0.9rem;
+}
+
+.screening-table-header {
+  margin-bottom: 0.5rem;
+}
+
+.screening-wrap {
+  max-height: 68vh;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+/* Qualified with `table` to outrank the base `table.collections th/td` padding. */
+table.screening-table {
+  font-size: 0.82rem;
+}
+
+table.screening-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.68rem;
+  background: var(--bg-elevated);
+}
+
+table.screening-table td {
+  padding: 0.2rem 0.6rem;
+  white-space: nowrap;
+}
+
+.screening-table .collection-name {
+  font-weight: 600;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.screening-table .num-cell {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.screening-muted {
+  color: var(--text-muted);
+}
+
+.screening-max {
+  color: var(--cta);
+}
+
+.screening-held {
+  margin-left: 0.45rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  border: 1px solid rgba(129, 199, 132, 0.3);
+  color: var(--accent);
+  font-size: 0.62rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Signal tint on the whole row so scanning the list is instant. */
+.screening-row.action-buy {
+  background: rgba(129, 199, 132, 0.07);
+}
+
+.screening-row.action-sell {
+  background: rgba(239, 83, 80, 0.07);
+}
+
+.screening-row:focus-within {
+  background: var(--bg-card-hover);
+}
+
+.screening-input-col {
+  width: 9rem;
+}
+
+.screening-input {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.screening-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+@media (max-width: 720px) {
+  .screening-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .screening-summary-actions {
+    justify-self: start;
+  }
+
+  .screening-opportunity-list li {
+    grid-template-columns: 1.25rem minmax(5rem, 1fr) auto;
+    row-gap: 0.15rem;
+  }
+}
+
 /* ── Scrollbar ── */
 
 ::-webkit-scrollbar {

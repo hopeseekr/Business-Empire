@@ -135,6 +135,26 @@ export function formatPct(n: number, digits = 2): string {
   return `${sign}${n.toFixed(digits)}%`
 }
 
+/**
+ * Strip everything that is not a digit or a single decimal point.
+ * Keeps price fields numeric-only while still allowing mid-edit values like "12.".
+ */
+export function sanitizeDecimalInput(value: string): string {
+  let result = ''
+  let hasDecimal = false
+
+  for (const character of value) {
+    if (/\d/.test(character)) {
+      result += character
+    } else if (character === '.' && !hasDecimal) {
+      result += character
+      hasDecimal = true
+    }
+  }
+
+  return result
+}
+
 /** Parse user input that may include $, commas, or spaces. Empty → null. */
 export function parseUserNumber(raw: string): number | null {
   const t = raw.trim()

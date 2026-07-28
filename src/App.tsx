@@ -5,6 +5,7 @@ import { ClothingOverview } from './pages/ClothingOverview'
 import { LaunchHelper } from './pages/LaunchHelper'
 import { Collections } from './pages/Collections'
 import { Investments } from './pages/Investments'
+import { BulkScreening } from './pages/BulkScreening'
 
 /**
  * HashRouter keeps routes after `#` (e.g. /business-empire/#/investments).
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="clothing/launch" element={<LaunchHelper />} />
           <Route path="clothing/collections" element={<Collections />} />
           <Route path="investments" element={<Investments />} />
+          <Route path="investments/screening" element={<BulkScreening />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

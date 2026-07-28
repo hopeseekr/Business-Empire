@@ -1,5 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState, type FocusEvent } from 'react'
-import { formatMoney, formatPct, parseUserNumber } from '../data/investments'
+import {
+  formatMoney,
+  formatPct,
+  parseUserNumber,
+  sanitizeDecimalInput,
+} from '../data/investments'
 import { formatSignedMoney } from '../data/realizedPnlStorage'
 import type { InvestmentAsset, InvestmentKind, InvestmentUnit, TradeAction } from '../types'
 
@@ -51,20 +56,6 @@ export function unitWord(
   if (form === 'singular') return labels.singular
   if (form === 'title') return labels.title
   return labels.plural
-}
-
-function sanitizeDecimalInput(value: string): string {
-  let result = ''
-  let hasDecimal = false
-  for (const character of value) {
-    if (/\d/.test(character)) {
-      result += character
-    } else if (character === '.' && !hasDecimal) {
-      result += character
-      hasDecimal = true
-    }
-  }
-  return result
 }
 
 /** Compact share/coin quantity display without ugly float tails. */

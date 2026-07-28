@@ -117,7 +117,8 @@ To host at the domain root instead, set `base: '/'` in `vite.config.ts` and rebu
 | **Clothing Brand → Overview** | Live | Launch rules, attributes, growth notes |
 | **Clothing Brand → Launch Helper** | Live | Type a collection name; get Style, Quality, Price, Audience |
 | **Clothing Brand → Collections** | Live | Full searchable/filterable collection database |
-| **Investments** | Live | Stocks, crypto & bullion trade helper: current price + optional units → potential remaining and BUY / HOLD / SELL |
+| **Investments → Trade Helper** | Live | Stocks, crypto & bullion trade helper: current price + optional units → potential remaining and BUY / HOLD / SELL |
+| **Investments → Bulk Screening** | Live | Type every ticker’s price in one keyboard pass (ENTER / TAB to advance) → % vs average, % to max and BUY / HOLD / SELL per row |
 
 Collection data lives in:
 
@@ -132,7 +133,8 @@ Investment range data (your spreadsheet):
 
 ### Investments rules (from the spreadsheet)
 
-- **Potential** = `(Max − Current Price) / Current Price`
+- **Potential** (Bulk Screening: *To Max*) = `(Max − Current Price) / Current Price`
+- **vs Avg** (Bulk Screening) = `(Current Price − Average) / Average` — negative means trading at a discount
 - **BUY** when price is below the historical average
 - **SELL** when price is at/above average **and** you entered shares (you hold a position)
 - **HOLD** when price is at/above average **and** you entered no shares (wait for a better entry)
@@ -171,7 +173,8 @@ BusinessEmpire/
 │       ├── ClothingOverview.tsx
 │       ├── LaunchHelper.tsx
 │       ├── Collections.tsx
-│       └── Investments.tsx
+│       ├── Investments.tsx         # Trade helper
+│       └── BulkScreening.tsx       # Rapid whole-market price entry
 ├── investments-stocks.md          # Source stock ranges
 ├── investments-crypto.md          # Source crypto ranges
 ├── investments-bullion.md         # Source bullion ranges (Gold / Silver / Diamonds)

@@ -8,6 +8,7 @@ const titles: Record<string, string> = {
   '/clothing/collections': 'Collections Database',
   '/clothing/launch': 'Launch Helper',
   '/investments': 'Investments',
+  '/investments/screening': 'Bulk Screening',
 }
 
 const isInvestments = (path: string) => path.startsWith('/investments')
