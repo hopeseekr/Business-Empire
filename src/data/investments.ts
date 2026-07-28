@@ -35,6 +35,9 @@ function resolveUnit(raw: InvestmentRaw, kind: InvestmentKind): InvestmentUnit {
 function toAsset(raw: InvestmentRaw, kind: InvestmentKind): InvestmentAsset {
   const max = parseMoney(raw.max)
   const min = parseMoney(raw.min)
+  // "3.26 %" → 3.26. Only stocks carry a yield; anything unparseable stays absent
+  // so the UI can tell "no yield for this market" from a real 0 %.
+  const yieldPct = raw.yield != null ? parseMoney(raw.yield) : NaN
   return {
     id: raw.id,
     kind,
@@ -44,6 +47,7 @@ function toAsset(raw: InvestmentRaw, kind: InvestmentKind): InvestmentAsset {
     min,
     average: parseMoney(raw.average),
     maxGain: min > 0 ? (max - min) / min : 0,
+    ...(Number.isFinite(yieldPct) ? { yieldPct } : {}),
     lastNow: parseMoney(raw.now),
   }
 }

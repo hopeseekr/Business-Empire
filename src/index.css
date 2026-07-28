@@ -2026,6 +2026,49 @@ table.screening-table td {
   color: var(--text-muted);
 }
 
+.screening-yield {
+  color: var(--info);
+  font-weight: 600;
+}
+
+.screening-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.screening-sort-btn:hover {
+  color: var(--text-secondary);
+}
+
+.screening-sort-btn.active {
+  color: var(--accent);
+}
+
+.screening-sort-btn:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.screening-sort-arrow {
+  font-size: 0.75em;
+  opacity: 0.55;
+}
+
+.screening-sort-btn.active .screening-sort-arrow {
+  opacity: 1;
+}
+
 .screening-max {
   color: var(--cta);
 }

@@ -37,6 +37,26 @@ interface ScreenRow {
   action: TradeAction | null
 }
 
+/** Yield column sort: market order → highest first → lowest first → market order. */
+type YieldSort = 'none' | 'desc' | 'asc'
+
+const NEXT_YIELD_SORT: Record<YieldSort, YieldSort> = {
+  none: 'desc',
+  desc: 'asc',
+  asc: 'none',
+}
+
+const YIELD_SORT_HINT: Record<YieldSort, string> = {
+  none: 'Sort by yield, highest first',
+  desc: 'Sort by yield, lowest first',
+  asc: 'Clear yield sort (back to market order)',
+}
+
+/** Plain percentage — yield is a rate, so it never gets formatPct's leading "+". */
+function formatYield(pct: number): string {
+  return `${pct.toFixed(2)}%`
+}
+
 function kindLabel(kind: InvestmentKind): string {
   if (kind === 'stock') return 'stocks'
   if (kind === 'crypto') return 'cryptocurrencies'
@@ -62,11 +82,15 @@ export function BulkScreening() {
   const [kind, setKind] = useState<InvestmentKind>(initial.kind)
   const [selectedIds] = useState(initial.selectedIds)
   const [entries, setEntries] = useState(initial.entries)
+  const [yieldSort, setYieldSort] = useState<YieldSort>('none')
 
   const inputsRef = useRef<Array<HTMLInputElement | null>>([])
 
+  /** Only stocks carry a yield today; the column hides itself for other markets. */
+  const showYield = useMemo(() => assetsFor(kind).some((a) => a.yieldPct != null), [kind])
+
   const rows = useMemo((): ScreenRow[] => {
-    return assetsFor(kind).map((asset) => {
+    const built = assetsFor(kind).map((asset) => {
       const entry = getStoredEntry(entries, kind, asset.id)
       const parsed = parseUserNumber(entry.price)
       const price = parsed != null && parsed > 0 ? parsed : null
@@ -86,7 +110,21 @@ export function BulkScreening() {
         action: price != null ? recommendAction(price, asset.average, shares > 0) : null,
       }
     })
-  }, [kind, entries])
+
+    // Yield is static data, so sorting by it never reshuffles rows mid-typing.
+    // Sort is stable, so equal yields keep market order; missing yields sink last.
+    if (!showYield || yieldSort === 'none') return built
+
+    const direction = yieldSort === 'asc' ? 1 : -1
+    return [...built].sort((a, b) => {
+      const av = a.asset.yieldPct
+      const bv = b.asset.yieldPct
+      if (av == null && bv == null) return 0
+      if (av == null) return 1
+      if (bv == null) return -1
+      return (av - bv) * direction
+    })
+  }, [kind, entries, showYield, yieldSort])
 
   const priced = rows.filter((row) => row.price != null)
   const buys = priced.filter((row) => row.action === 'BUY')
@@ -342,6 +380,31 @@ export function BulkScreening() {
                 <th scope="col">Min</th>
                 <th scope="col">Avg</th>
                 <th scope="col">Max</th>
+                {showYield && (
+                  <th
+                    scope="col"
+                    aria-sort={
+                      yieldSort === 'asc'
+                        ? 'ascending'
+                        : yieldSort === 'desc'
+                          ? 'descending'
+                          : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      className={`screening-sort-btn${yieldSort === 'none' ? '' : ' active'}`}
+                      onClick={() => setYieldSort(NEXT_YIELD_SORT[yieldSort])}
+                      title={YIELD_SORT_HINT[yieldSort]}
+                      aria-label={YIELD_SORT_HINT[yieldSort]}
+                    >
+                      Yield
+                      <span className="screening-sort-arrow" aria-hidden="true">
+                        {yieldSort === 'desc' ? '▼' : yieldSort === 'asc' ? '▲' : '↕'}
+                      </span>
+                    </button>
+                  </th>
+                )}
                 <th scope="col" className="screening-input-col">
                   Current price
                 </th>
@@ -377,6 +440,11 @@ export function BulkScreening() {
                     <td className="num-cell screening-muted">{formatMoney(asset.min)}</td>
                     <td className="num-cell">{formatMoney(asset.average)}</td>
                     <td className="num-cell screening-max">{formatMoney(asset.max)}</td>
+                    {showYield && (
+                      <td className="num-cell screening-yield">
+                        {asset.yieldPct != null ? formatYield(asset.yieldPct) : '—'}
+                      </td>
+                    )}
                     <td className="screening-input-col">
                       <input
                         ref={(el) => {
@@ -442,6 +510,11 @@ export function BulkScreening() {
           <li>
             <strong>SELL</strong> only shows for tickers you already hold; otherwise an
             at/above-average price reads <strong>HOLD</strong>.
+          </li>
+          <li>
+            Click the <strong>Yield</strong> header to sort highest-first, again for
+            lowest-first, and a third time to return to market order. Yield is fixed data, so
+            sorting never reshuffles rows while you are typing.
           </li>
           <li>
             Prices you enter here are the same ones the <strong>Trade helper</strong> uses — screen

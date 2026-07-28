@@ -54,6 +54,8 @@ export interface InvestmentAsset {
   average: number
   /** Historical max gain (Max − Min) / Min. */
   maxGain: number
+  /** Dividend / period yield in percent (stocks only; undefined elsewhere). */
+  yieldPct?: number
   /** Last recorded in-game price from the spreadsheet (starter value only). */
   lastNow: number
 }
