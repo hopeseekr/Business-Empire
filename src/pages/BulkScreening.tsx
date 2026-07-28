@@ -32,8 +32,8 @@ interface ScreenRow {
   shares: number
   /** Shares multiplied by the stored average cost basis. */
   amountInvested: number
-  /** (Price − Avg) / Avg × 100 — negative means trading at a discount. */
-  vsAvgPct: number | null
+  /** (Price − Min) / Min × 100 — distance from the tracked minimum. */
+  fromMinPct: number | null
   /** (Max − Price) / Price × 100 — remaining upside to the tracked max. */
   toMaxPct: number | null
   action: TradeAction | null
@@ -41,7 +41,7 @@ interface ScreenRow {
 
 /** Yield column sort: market order → highest first → lowest first → market order. */
 type YieldSort = 'none' | 'desc' | 'asc'
-type SortColumn = 'asset' | 'vsAvg' | 'max' | 'toMax' | 'yield'
+type SortColumn = 'asset' | 'fromMin' | 'max' | 'toMax' | 'yield'
 
 const NEXT_YIELD_SORT: Record<YieldSort, YieldSort> = {
   none: 'desc',
@@ -87,11 +87,9 @@ function actionClass(action: TradeAction): string {
   return 'action-hold'
 }
 
-/** Discount to average is the buy signal, so below-average reads green. */
-function vsAvgClass(pct: number): string {
-  if (pct < 0) return 'pot-up'
-  if (pct > 0) return 'pot-down'
-  return ''
+/** Values within 20% of the minimum (including below-min values) read green. */
+function fromMinClass(pct: number): string {
+  return pct <= 20 ? 'pot-up' : ''
 }
 
 export function BulkScreening() {
@@ -126,9 +124,9 @@ export function BulkScreening() {
         price,
         shares,
         amountInvested: shares * basis,
-        vsAvgPct:
-          price != null && asset.average > 0
-            ? ((price - asset.average) / asset.average) * 100
+        fromMinPct:
+          price != null && asset.min > 0
+            ? ((price - asset.min) / asset.min) * 100
             : null,
         toMaxPct: price != null ? potentialPct(asset.max, price) : null,
         action: price != null ? recommendAction(price, asset.average, shares > 0) : null,
@@ -143,8 +141,8 @@ export function BulkScreening() {
       if (aOwned !== bOwned) return aOwned ? -1 : 1
       if (aOwned && a.amountInvested !== b.amountInvested) return b.amountInvested - a.amountInvested
       if (!hasColumnSort) return 0
-      const av = sortColumn === 'asset' ? a.asset.name : sortColumn === 'max' ? a.asset.max : sortColumn === 'vsAvg' ? a.vsAvgPct : sortColumn === 'toMax' ? a.toMaxPct : a.asset.yieldPct
-      const bv = sortColumn === 'asset' ? b.asset.name : sortColumn === 'max' ? b.asset.max : sortColumn === 'vsAvg' ? b.vsAvgPct : sortColumn === 'toMax' ? b.toMaxPct : b.asset.yieldPct
+      const av = sortColumn === 'asset' ? a.asset.name : sortColumn === 'max' ? a.asset.max : sortColumn === 'fromMin' ? a.fromMinPct : sortColumn === 'toMax' ? a.toMaxPct : a.asset.yieldPct
+      const bv = sortColumn === 'asset' ? b.asset.name : sortColumn === 'max' ? b.asset.max : sortColumn === 'fromMin' ? b.fromMinPct : sortColumn === 'toMax' ? b.toMaxPct : b.asset.yieldPct
       if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * direction
       if (av == null && bv == null) return 0
       if (av == null) return 1
@@ -422,8 +420,8 @@ export function BulkScreening() {
               <li key={`${row.asset.kind}-${row.asset.id}`}>
                 <span className="screening-opportunity-name">{row.asset.name}</span>
                 <span className="screening-opportunity-price">{formatMoney(row.price!)}</span>
-                <span className={vsAvgClass(row.vsAvgPct!)}>
-                  {formatPct(row.vsAvgPct!)} vs avg
+                <span className={fromMinClass(row.fromMinPct!)}>
+                  {formatPct(row.fromMinPct!)} from min
                 </span>
                 <span className="pot-up">{formatPct(row.toMaxPct!)} to max</span>
               </li>
@@ -471,8 +469,8 @@ export function BulkScreening() {
                 <th scope="col" className="screening-input-col">
                   Current price
                 </th>
-                <th scope="col" title="(Price − Average) / Average" aria-sort={sortAria('vsAvg')}>
-                  {sortButton('vsAvg', 'vs Avg', 'Sort by vs average')}
+                <th scope="col" title="(Price − Min) / Min × 100" aria-sort={sortAria('fromMin')}>
+                  {sortButton('fromMin', 'From Min', 'Sort by distance from minimum')}
                 </th>
                 <th scope="col" title="(Max − Price) / Price — remaining upside" aria-sort={sortAria('toMax')}>
                   {sortButton('toMax', 'To Max', 'Sort by upside to max')}
@@ -527,9 +525,9 @@ export function BulkScreening() {
                       />
                     </td>
                     <td
-                      className={`num-cell ${row.vsAvgPct != null ? vsAvgClass(row.vsAvgPct) : ''}`.trim()}
+                      className={`num-cell ${row.fromMinPct != null ? fromMinClass(row.fromMinPct) : ''}`.trim()}
                     >
-                      {row.vsAvgPct != null ? formatPct(row.vsAvgPct) : '—'}
+                      {row.fromMinPct != null ? formatPct(row.fromMinPct) : '—'}
                     </td>
                     <td
                       className={`num-cell ${
@@ -563,8 +561,8 @@ export function BulkScreening() {
             repeat. The list order matches the in-game market list.
           </li>
           <li>
-            <strong>vs Avg</strong> = (Price − Average) / Average. Negative (green) means the ticker
-            is on discount — that is the <strong>BUY</strong> trigger.
+            <strong>From Min</strong> = (Price − Min) / Min × 100. Values at or below 20% (including
+            below-min values) are green.
           </li>
           <li>
             <strong>To Max</strong> = (Max − Price) / Price — the growth still on the table if it
@@ -576,7 +574,7 @@ export function BulkScreening() {
           </li>
           <li>
             Stocks start sorted by <strong>Yield</strong> (highest first). Click Yield, Asset, Max,
-            vs Avg, or To Max to cycle descending, ascending, and market order.
+            From Min, or To Max to cycle descending, ascending, and market order.
           </li>
           <li>
             Prices you enter here are the same ones the <strong>Trade helper</strong> uses — screen
