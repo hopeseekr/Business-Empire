@@ -82,7 +82,8 @@ export function BulkScreening() {
   const [kind, setKind] = useState<InvestmentKind>(initial.kind)
   const [selectedIds] = useState(initial.selectedIds)
   const [entries, setEntries] = useState(initial.entries)
-  const [yieldSort, setYieldSort] = useState<YieldSort>('none')
+  // Stocks open with the highest-yielding assets first.
+  const [yieldSort, setYieldSort] = useState<YieldSort>('desc')
 
   const inputsRef = useRef<Array<HTMLInputElement | null>>([])
 
