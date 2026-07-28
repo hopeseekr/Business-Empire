@@ -4,7 +4,7 @@
     "asset": "3N",
     "max": "$219.92",
     "min": "$144.74",
-    "average": "$181.72",
+    "average": "$182.33",
     "max_gain": "3.26 %",
     "now": "$188.15",
     "potential": "15.90%"
@@ -14,7 +14,7 @@
     "asset": "AD&D",
     "max": "$30.40",
     "min": "$20.04",
-    "average": "$25.33",
+    "average": "$25.22",
     "max_gain": "5.32 %",
     "now": "$27.18",
     "potential": "11.83%"
@@ -74,7 +74,7 @@
     "asset": "BebsiCo",
     "max": "$190.31",
     "min": "$126.47",
-    "average": "$158.09",
+    "average": "$158.39",
     "max_gain": "2.72 %",
     "now": "$135.02",
     "potential": "40.50%"
@@ -144,7 +144,7 @@
     "asset": "Coco-Cola",
     "max": "$64.73",
     "min": "$42.88",
-    "average": "$53.94",
+    "average": "$53.81",
     "max_gain": "3.11 %",
     "now": "$50.05",
     "potential": "29.33%"
@@ -254,7 +254,7 @@
     "asset": "Imtell",
     "max": "$65.36",
     "min": "$42.93",
-    "average": "$54.47",
+    "average": "$54.15",
     "max_gain": "2.55 %",
     "now": "$55.71",
     "potential": "17.33%"
@@ -264,7 +264,7 @@
     "asset": "Lockheat Martin",
     "max": "$446.02",
     "min": "$296.02",
-    "average": "$370.02",
+    "average": "$371.02",
     "max_gain": "3.03 %",
     "now": "$408.56",
     "potential": "8.68%"
@@ -334,7 +334,7 @@
     "asset": "Netflexx",
     "max": "$765.56",
     "min": "$507.10",
-    "average": "$637.97",
+    "average": "$636.33",
     "max_gain": "0.01 %",
     "now": "$608.04",
     "potential": "25.91%"
@@ -364,7 +364,7 @@
     "asset": "Pineapple",
     "max": "$175.86",
     "min": "$116.42",
-    "average": "$146.55",
+    "average": "$146.14",
     "max_gain": "0.6 %",
     "now": "$136.60",
     "potential": "28.74%"
@@ -454,7 +454,7 @@
     "asset": "Valera Energy",
     "max": "$96.16",
     "min": "$63.99",
-    "average": "$80.13",
+    "average": "$80.08",
     "max_gain": "4.89 %",
     "now": "$79.82",
     "potential": "20.47%"
@@ -464,7 +464,7 @@
     "asset": "Viza",
     "max": "$280.01",
     "min": "$183.47",
-    "average": "$233.34",
+    "average": "$231.74",
     "max_gain": "0.55 %",
     "now": "$207.31",
     "potential": "35.07%"
@@ -494,7 +494,7 @@
     "asset": "XonMobyll",
     "max": "$75.07",
     "min": "$49.59",
-    "average": "$62.56",
+    "average": "$62.33",
     "max_gain": "5.07 %",
     "now": "$66.11",
     "potential": "13.56%"
