@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { unitWord } from '../components/TradeDialog'
 import {
   assetsFor,
   bullion,
@@ -18,6 +17,7 @@ import {
   loadInvestmentPrefs,
   saveInvestmentPrefs,
   upsertEntry,
+  resolveFirstPrice,
   type StoredAssetEntry,
 } from '../data/investmentStorage'
 import type { InvestmentAsset, InvestmentKind, TradeAction } from '../types'
@@ -30,6 +30,8 @@ interface ScreenRow {
   /** Parsed price when > 0, else null (metrics show —). */
   price: number | null
   shares: number
+  /** Shares multiplied by the stored average cost basis. */
+  amountInvested: number
   /** (Price − Avg) / Avg × 100 — negative means trading at a discount. */
   vsAvgPct: number | null
   /** (Max − Price) / Price × 100 — remaining upside to the tracked max. */
@@ -56,6 +58,21 @@ const YIELD_SORT_HINT: Record<YieldSort, string> = {
 /** Plain percentage — yield is a rate, so it never gets formatPct's leading "+". */
 function formatYield(pct: number): string {
   return `${pct.toFixed(2)}%`
+}
+
+/** Compact dollar amount with exactly two decimals and a spaced suffix. */
+function formatInvestedAmount(amount: number): string {
+  if (!Number.isFinite(amount)) return '—'
+  const abs = Math.abs(amount)
+  const suffixes = ['', 'K', 'M', 'B', 'T']
+  let tier = 0
+  let value = abs
+  while (value >= 1000 && tier < suffixes.length - 1) {
+    value /= 1000
+    tier += 1
+  }
+  const sign = amount < 0 ? '-' : ''
+  return `${sign}$${value.toFixed(2)}${tier ? ` ${suffixes[tier]}` : ''}`
 }
 
 function kindLabel(kind: InvestmentKind): string {
@@ -100,12 +117,15 @@ export function BulkScreening() {
       const price = parsed != null && parsed > 0 ? parsed : null
       const sharesParsed = parseUserNumber(entry.shares)
       const shares = sharesParsed != null && sharesParsed > 0 ? sharesParsed : 0
+      const basisText = resolveFirstPrice(entry)
+      const basis = basisText ? parseUserNumber(basisText) ?? 0 : 0
 
       return {
         asset,
         priceText: entry.price,
         price,
         shares,
+        amountInvested: shares * basis,
         vsAvgPct:
           price != null && asset.average > 0
             ? ((price - asset.average) / asset.average) * 100
@@ -115,10 +135,14 @@ export function BulkScreening() {
       }
     })
 
-    if (sortColumn === 'yield' && (!showYield || yieldSort === 'none')) return built
-    if (sortColumn !== 'yield' && columnSort === 'none') return built
+    const hasColumnSort = sortColumn === 'yield' ? showYield && yieldSort !== 'none' : columnSort !== 'none'
     const direction = sortColumn === 'yield' ? (yieldSort === 'asc' ? 1 : -1) : (columnSort === 'asc' ? 1 : -1)
     return [...built].sort((a, b) => {
+      const aOwned = a.shares > 0
+      const bOwned = b.shares > 0
+      if (aOwned !== bOwned) return aOwned ? -1 : 1
+      if (aOwned && a.amountInvested !== b.amountInvested) return b.amountInvested - a.amountInvested
+      if (!hasColumnSort) return 0
       const av = sortColumn === 'asset' ? a.asset.name : sortColumn === 'max' ? a.asset.max : sortColumn === 'vsAvg' ? a.vsAvgPct : sortColumn === 'toMax' ? a.toMaxPct : a.asset.yieldPct
       const bv = sortColumn === 'asset' ? b.asset.name : sortColumn === 'max' ? b.asset.max : sortColumn === 'vsAvg' ? b.vsAvgPct : sortColumn === 'toMax' ? b.toMaxPct : b.asset.yieldPct
       if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * direction
@@ -470,9 +494,9 @@ export function BulkScreening() {
                       {held && (
                         <span
                           className="screening-held"
-                          title={`You hold ${row.shares.toLocaleString()} ${unitWord(asset, 'plural')}`}
+                          title={`Amount invested: ${formatInvestedAmount(row.amountInvested)}`}
                         >
-                          {row.shares.toLocaleString()} {unitWord(asset, 'plural')}
+                          {formatInvestedAmount(row.amountInvested)}
                         </span>
                       )}
                     </td>
