@@ -118,7 +118,7 @@ To host at the domain root instead, set `base: '/'` in `vite.config.ts` and rebu
 | **Clothing Brand → Launch Helper** | Live | Type a collection name; get Style, Quality, Price, Audience |
 | **Clothing Brand → Collections** | Live | Full searchable/filterable collection database |
 | **Investments → Trade Helper** | Live | Stocks, crypto & bullion trade helper: current price + optional units → potential remaining and BUY / HOLD / SELL |
-| **Investments → Bulk Screening** | Live | Type every ticker’s price in one keyboard pass (ENTER / TAB to advance) → % vs average, % to max and BUY / HOLD / SELL per row; stocks add a sortable Yield column |
+| **Investments → Bulk Screening** | Live | Type every ticker’s price in one keyboard pass (ENTER / TAB to advance) → % vs average, % to max and BUY / HOLD / SELL per row; stocks start sorted by Yield (highest first) and support sortable columns |
 
 Collection data lives in:
 
@@ -135,7 +135,7 @@ Investment range data (your spreadsheet):
 
 - **Potential** (Bulk Screening: *To Max*) = `(Max − Current Price) / Current Price`
 - **vs Avg** (Bulk Screening) = `(Current Price − Average) / Average` — negative means trading at a discount
-- **Yield** (stocks only) comes straight from the `yield` field in `investments-stocks.json`; click the column header to sort highest-first, lowest-first, then back to market order
+- **Sorting**: Stocks default to Yield descending. Click Yield, Asset, Max, vs Avg, or To Max to cycle descending, ascending, then back to market order.
 - **BUY** when price is below the historical average
 - **SELL** when price is at/above average **and** you entered shares (you hold a position)
 - **HOLD** when price is at/above average **and** you entered no shares (wait for a better entry)

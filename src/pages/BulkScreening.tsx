@@ -39,6 +39,7 @@ interface ScreenRow {
 
 /** Yield column sort: market order → highest first → lowest first → market order. */
 type YieldSort = 'none' | 'desc' | 'asc'
+type SortColumn = 'asset' | 'vsAvg' | 'max' | 'toMax' | 'yield'
 
 const NEXT_YIELD_SORT: Record<YieldSort, YieldSort> = {
   none: 'desc',
@@ -84,6 +85,8 @@ export function BulkScreening() {
   const [entries, setEntries] = useState(initial.entries)
   // Stocks open with the highest-yielding assets first.
   const [yieldSort, setYieldSort] = useState<YieldSort>('desc')
+  const [sortColumn, setSortColumn] = useState<SortColumn>('yield')
+  const [columnSort, setColumnSort] = useState<YieldSort>('none')
 
   const inputsRef = useRef<Array<HTMLInputElement | null>>([])
 
@@ -112,20 +115,62 @@ export function BulkScreening() {
       }
     })
 
-    // Yield is static data, so sorting by it never reshuffles rows mid-typing.
-    // Sort is stable, so equal yields keep market order; missing yields sink last.
-    if (!showYield || yieldSort === 'none') return built
-
-    const direction = yieldSort === 'asc' ? 1 : -1
+    if (sortColumn === 'yield' && (!showYield || yieldSort === 'none')) return built
+    if (sortColumn !== 'yield' && columnSort === 'none') return built
+    const direction = sortColumn === 'yield' ? (yieldSort === 'asc' ? 1 : -1) : (columnSort === 'asc' ? 1 : -1)
     return [...built].sort((a, b) => {
-      const av = a.asset.yieldPct
-      const bv = b.asset.yieldPct
+      const av = sortColumn === 'asset' ? a.asset.name : sortColumn === 'max' ? a.asset.max : sortColumn === 'vsAvg' ? a.vsAvgPct : sortColumn === 'toMax' ? a.toMaxPct : a.asset.yieldPct
+      const bv = sortColumn === 'asset' ? b.asset.name : sortColumn === 'max' ? b.asset.max : sortColumn === 'vsAvg' ? b.vsAvgPct : sortColumn === 'toMax' ? b.toMaxPct : b.asset.yieldPct
+      if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * direction
       if (av == null && bv == null) return 0
       if (av == null) return 1
       if (bv == null) return -1
-      return (av - bv) * direction
+      return ((av as number) - (bv as number)) * direction
     })
-  }, [kind, entries, showYield, yieldSort])
+  }, [kind, entries, showYield, yieldSort, sortColumn, columnSort])
+
+  const cycleSort = (column: SortColumn) => {
+    if (column === 'yield') {
+      setSortColumn('yield')
+      setYieldSort(NEXT_YIELD_SORT[yieldSort])
+      return
+    }
+    setSortColumn(column)
+    setColumnSort(column === sortColumn ? NEXT_YIELD_SORT[columnSort] : 'desc')
+    setYieldSort('none')
+  }
+
+  const sortAria = (column: SortColumn) => {
+    const direction = column === 'yield' ? yieldSort : columnSort
+    return sortColumn === column && direction !== 'none'
+      ? direction === 'asc'
+        ? 'ascending'
+        : 'descending'
+      : 'none'
+  }
+
+  const sortButton = (column: SortColumn, label: string, title: string) => (
+    <button
+      type="button"
+      className={`screening-sort-btn${sortColumn === column && (column === 'yield' ? yieldSort !== 'none' : columnSort !== 'none') ? ' active' : ''}`}
+      onClick={() => cycleSort(column)}
+      title={title}
+      aria-label={title}
+    >
+      {label}
+      <span className="screening-sort-arrow" aria-hidden="true">
+        {sortColumn === column && (column === 'yield' ? yieldSort !== 'none' : columnSort !== 'none')
+          ? column === 'yield'
+            ? yieldSort === 'asc'
+              ? '▲'
+              : '▼'
+            : columnSort === 'asc'
+              ? '▲'
+              : '▼'
+          : '↕'}
+      </span>
+    </button>
+  )
 
   const priced = rows.filter((row) => row.price != null)
   const buys = priced.filter((row) => row.action === 'BUY')
@@ -377,10 +422,14 @@ export function BulkScreening() {
           <table className="collections screening-table">
             <thead>
               <tr>
-                <th scope="col">Asset</th>
+                <th scope="col" aria-sort={sortAria('asset')}>
+                  {sortButton('asset', 'Asset', 'Sort by asset name')}
+                </th>
                 <th scope="col">Min</th>
                 <th scope="col">Avg</th>
-                <th scope="col">Max</th>
+                <th scope="col" aria-sort={sortAria('max')}>
+                  {sortButton('max', 'Max', 'Sort by maximum price')}
+                </th>
                 {showYield && (
                   <th
                     scope="col"
@@ -392,28 +441,17 @@ export function BulkScreening() {
                           : 'none'
                     }
                   >
-                    <button
-                      type="button"
-                      className={`screening-sort-btn${yieldSort === 'none' ? '' : ' active'}`}
-                      onClick={() => setYieldSort(NEXT_YIELD_SORT[yieldSort])}
-                      title={YIELD_SORT_HINT[yieldSort]}
-                      aria-label={YIELD_SORT_HINT[yieldSort]}
-                    >
-                      Yield
-                      <span className="screening-sort-arrow" aria-hidden="true">
-                        {yieldSort === 'desc' ? '▼' : yieldSort === 'asc' ? '▲' : '↕'}
-                      </span>
-                    </button>
+                    {sortButton('yield', 'Yield', YIELD_SORT_HINT[yieldSort])}
                   </th>
                 )}
                 <th scope="col" className="screening-input-col">
                   Current price
                 </th>
-                <th scope="col" title="(Price − Average) / Average">
-                  vs Avg
+                <th scope="col" title="(Price − Average) / Average" aria-sort={sortAria('vsAvg')}>
+                  {sortButton('vsAvg', 'vs Avg', 'Sort by vs average')}
                 </th>
-                <th scope="col" title="(Max − Price) / Price — remaining upside">
-                  To Max
+                <th scope="col" title="(Max − Price) / Price — remaining upside" aria-sort={sortAria('toMax')}>
+                  {sortButton('toMax', 'To Max', 'Sort by upside to max')}
                 </th>
                 <th scope="col">Signal</th>
               </tr>
@@ -513,9 +551,8 @@ export function BulkScreening() {
             at/above-average price reads <strong>HOLD</strong>.
           </li>
           <li>
-            Click the <strong>Yield</strong> header to sort highest-first, again for
-            lowest-first, and a third time to return to market order. Yield is fixed data, so
-            sorting never reshuffles rows while you are typing.
+            Stocks start sorted by <strong>Yield</strong> (highest first). Click Yield, Asset, Max,
+            vs Avg, or To Max to cycle descending, ascending, and market order.
           </li>
           <li>
             Prices you enter here are the same ones the <strong>Trade helper</strong> uses — screen
