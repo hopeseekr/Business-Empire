@@ -38,7 +38,6 @@ export interface InvestmentRaw {
   /** Historical band gain label (crypto / bullion). */
   max_gain?: string
   now: string
-  potential: string
   recommendation?: string
   active?: string
 }
