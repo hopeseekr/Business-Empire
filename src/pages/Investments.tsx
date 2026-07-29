@@ -803,7 +803,6 @@ export function Investments() {
             Realized P&amp;L
           </h3>
           <div className="session-pnl-toolbar spacer">
-            <span className="results-count">localStorage · persists</span>
             <div className="session-pnl-actions">
               <button
                 type="button"
