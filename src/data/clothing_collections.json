@@ -35,13 +35,6 @@
     "audience": "Business"
   },
   {
-    "name": "Business chic",
-    "style": "Business",
-    "quality": "Premium",
-    "price": "High",
-    "audience": "Business"
-  },
-  {
     "name": "Business style of the future",
     "style": "Business",
     "quality": "Premium",
@@ -84,7 +77,7 @@
     "audience": "Premium"
   },
   {
-    "name": "Evening chic",
+    "name": "Evening Chic",
     "style": "Glamor",
     "quality": "Premium",
     "price": "High",
@@ -112,7 +105,7 @@
     "audience": "Premium"
   },
   {
-    "name": "Gangster chic",
+    "name": "Gangster Chic",
     "style": "Retro",
     "quality": "Premium",
     "price": "High",
