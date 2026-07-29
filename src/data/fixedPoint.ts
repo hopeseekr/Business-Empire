@@ -10,14 +10,20 @@ export function roundedDivide(numerator: bigint, denominator: bigint): bigint {
   return sign * (quotient + (remainder * 2n >= denominator ? 1n : 0n))
 }
 
-/** Parse a non-exponential decimal into eight-decimal fixed-point units. */
+/**
+ * Parse a non-exponential decimal into eight-decimal fixed-point units.
+ * Extra fraction digits beyond the eighth are rounded away (round-half-up),
+ * not rejected — a price like "9.933540538" is still a valid price.
+ */
 export function parseFixed8(raw: string): bigint | null {
   const value = raw.trim()
-  const match = /^([+-]?)(?:(\d+)(?:\.(\d{0,8}))?|\.(\d{1,8}))$/.exec(value)
+  const match = /^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))$/.exec(value)
   if (!match) return null
   const whole = match[2] ?? '0'
   const fraction = match[3] ?? match[4] ?? ''
-  const units = BigInt(whole) * FIXED_SCALE + BigInt((fraction + '00000000').slice(0, 8))
+  const kept = (fraction + '00000000').slice(0, 8)
+  const roundUp = fraction.length > 8 && fraction[8] >= '5'
+  const units = BigInt(whole) * FIXED_SCALE + BigInt(kept) + (roundUp ? 1n : 0n)
   return match[1] === '-' ? -units : units
 }
 
@@ -49,6 +55,14 @@ export function divideFixed8(left: string, right: string): string | null {
   const denominator = parseFixed8(right)
   if (numerator == null || denominator == null || denominator === 0n) return null
   return formatFixed8(roundedDivide(numerator * FIXED_SCALE, denominator))
+}
+
+/** Multiply two fixed-point values and round the result to fixed-point precision. */
+export function multiplyFixed8(left: string, right: string): string | null {
+  const a = parseFixed8(left)
+  const b = parseFixed8(right)
+  if (a == null || b == null) return null
+  return formatFixed8(roundedDivide(a * b, FIXED_SCALE))
 }
 
 /** Weighted average cost, rounded once to the eight-decimal storage precision. */

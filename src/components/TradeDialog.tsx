@@ -6,7 +6,7 @@ import {
   sanitizeDecimalInput,
 } from '../data/investments'
 import { formatSignedMoney } from '../data/realizedPnlStorage'
-import { divideFixed8, parseFixed8 } from '../data/fixedPoint'
+import { divideFixed8, multiplyFixed8, parseFixed8 } from '../data/fixedPoint'
 import type { InvestmentAsset, InvestmentKind, InvestmentUnit, TradeAction } from '../types'
 
 export interface TradePosition {
@@ -88,6 +88,7 @@ export function TradeDialog({
   onBuy,
   onSell,
   onPriceChange,
+  onTotalInvestedChange,
   onPriceBlur,
 }: {
   position: TradePosition
@@ -99,12 +100,18 @@ export function TradeDialog({
   onBuy: (shares: string) => void
   onSell: (shares: string) => void
   onPriceChange: (value: string) => void
+  onTotalInvestedChange: (value: string) => void
   onPriceBlur?: () => void
 }) {
   const titleId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [mode, setMode] = useState<AmountMode>('shares')
   const [amount, setAmount] = useState('')
+  const [totalInvestedText, setTotalInvestedText] = useState(
+    () =>
+      multiplyFixed8(priceText, position.sharesText) ??
+      (position.totalInvestment > 0 ? String(position.totalInvestment) : ''),
+  )
   const [step, setStep] = useState<DialogStep>('edit')
   const [pendingSellShares, setPendingSellShares] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -312,8 +319,33 @@ export function TradeDialog({
               <span className="trade-record-value">{formatShares(position.shares)}</span>
             </div>
             <div>
-              <span className="trade-record-label">Total inv.</span>
-              <span className="trade-record-value">{formatMoney(position.totalInvestment)}</span>
+              <label className="trade-record-label" htmlFor="trade-total-invested">
+                Total invested
+              </label>
+              <input
+                id="trade-total-invested"
+                className="input trade-price-input"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="e.g. 1247.85"
+                value={totalInvestedText}
+                onChange={(e) => {
+                  const next = sanitizeDecimalInput(e.target.value)
+                  setTotalInvestedText(next)
+                  const heldUnits = parseFixed8(position.sharesText) ?? 0n
+                  // With no existing holding there is no denominator yet; use the
+                  // entered amount as the initial price so a first BUY can proceed.
+                  const priceFromTotal =
+                    heldUnits > 0n ? divideFixed8(next, position.sharesText) : next
+                  if (priceFromTotal != null && (parseFixed8(priceFromTotal) ?? 0n) > 0n) {
+                    onTotalInvestedChange(priceFromTotal)
+                  }
+                  setError(null)
+                }}
+                onFocus={selectAllOnFocus}
+                aria-label="Total invested"
+              />
             </div>
             <div>
               <span className="trade-record-label">Unrealized</span>

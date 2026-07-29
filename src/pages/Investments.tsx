@@ -1096,6 +1096,7 @@ export function Investments() {
           onBuy={handleTradeBuy}
           onSell={handleTradeSell}
           onPriceChange={handleTradePriceChange}
+          onTotalInvestedChange={handleTradePriceChange}
           onPriceBlur={commitPriceBasis}
         />
       )}
