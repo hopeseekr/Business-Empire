@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { TradeDialog, unitWord } from '../components/TradeDialog'
+import { NftDialog } from '../components/NftDialog'
+import { loadOwnedNfts, nfts, saveOwnedNfts, type NftCurrency, type OwnedNfts } from '../data/nfts'
 import {
   analyzeTrade,
   assetsFor,
@@ -264,6 +266,8 @@ export function Investments() {
   const [focusedAsset, setFocusedAsset] = useState<string | null>(null)
   const [focusPriceRequest, setFocusPriceRequest] = useState(0)
   const [tradePosition, setTradePosition] = useState<OwnedRow | null>(null)
+  const [ownedNfts, setOwnedNfts] = useState<OwnedNfts>(() => loadOwnedNfts())
+  const [nftDialog, setNftDialog] = useState<NftCurrency | null>(null)
   const [realizedPnl, setRealizedPnl] = useState<RealizedPnlState>(() => loadRealizedPnl())
   const [backupStatus, setBackupStatus] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -273,6 +277,12 @@ export function Investments() {
   const importTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const matches = useMemo(() => searchAssets(kind, query), [kind, query])
+
+  const nftCost = (currency: NftCurrency) =>
+    ownedNfts[currency].reduce(
+      (sum, name) => sum + (nfts[currency].find((n) => n.name === name)?.price ?? 0),
+      0,
+    )
 
   /**
    * Owned / register rows for the active Stocks / Crypto / Bullion tab.
@@ -344,7 +354,7 @@ export function Investments() {
 
       const analysis = analyzeTrade(asset, livePrice, shares)
       // Mark-to-market value = live price × shares (unrealized portfolio value).
-      const totalInvestment = livePrice * shares
+      const totalInvestment = livePrice * shares - (kind === 'crypto' && asset.name.toUpperCase() === 'ETH' ? nftCost('ETH') : kind === 'crypto' && asset.name.toUpperCase() === 'TRB' ? nftCost('TRB') : 0)
       const gainLoss = (livePrice - basis) * shares
       const gainLossPct = ((livePrice - basis) / basis) * 100
 
@@ -370,7 +380,7 @@ export function Investments() {
     // Highest mark-to-market value first.
     rows.sort((a, b) => b.totalInvestment - a.totalInvestment)
     return rows
-  }, [kind, entries])
+  }, [kind, entries, ownedNfts])
 
   // Persist UI meta + each asset as its own localStorage key.
   useEffect(() => {
@@ -381,6 +391,7 @@ export function Investments() {
       entries,
     })
   }, [kind, selectedIds, entries])
+  useEffect(() => { saveOwnedNfts(ownedNfts) }, [ownedNfts])
 
   // Realized P&L (localStorage — persists across tabs/restarts).
   useEffect(() => {
@@ -397,6 +408,11 @@ export function Investments() {
       .map(([key, stats]) => ({ key, ...stats }))
       .sort((a, b) => Math.abs(Number(b.realized)) - Math.abs(Number(a.realized)))
   }, [realizedPnl, kind])
+
+  const buyNft = (currency: NftCurrency, name: string) => {
+    setOwnedNfts((prev) => prev[currency].includes(name) ? prev : { ...prev, [currency]: [...prev[currency], name] })
+    setNftDialog(null)
+  }
 
   useEffect(() => {
     if (focusPriceRequest > 0) {
@@ -1081,6 +1097,17 @@ export function Investments() {
               </tbody>
             </table>
           </div>
+          {kind === 'crypto' && ownedRows.some((row) => row.asset.name.toUpperCase() === 'ETH' || row.asset.name.toUpperCase() === 'TRB') && (
+            <div className="nft-register">
+              <div className="row"><h4 className="section-title" style={{ margin: 0 }}>NFTs</h4><span className="results-count spacer">fixed prices · live floating values</span></div>
+              {(['ETH', 'TRB'] as NftCurrency[]).map((currency) => {
+                const row = ownedRows.find((item) => item.asset.name.toUpperCase() === currency)
+                if (!row) return null
+                const floating = row.priceValid ? row.price : 0
+                return <div className="nft-group" key={currency}><div className="row"><strong>{currency}</strong><button type="button" className="btn btn-ghost btn-sm spacer" onClick={() => setNftDialog(currency)}>Buy NFT</button></div><ul>{ownedNfts[currency].map((name) => { const item = nfts[currency].find((n) => n.name === name)!; return <li key={name}><span>{name}</span><span>{item.price.toLocaleString()} {currency} · {floating > 0 ? formatMoney(item.price * floating) : '—'} floating</span></li> })}</ul><div className="nft-total"><span>Real {currency} investment</span><strong>{nftCost(currency).toLocaleString()} {currency}</strong></div></div>
+              })}
+            </div>
+          )}
         </section>
       )}
 
@@ -1099,6 +1126,9 @@ export function Investments() {
           onTotalInvestedChange={handleTradePriceChange}
           onPriceBlur={commitPriceBasis}
         />
+      )}
+      {nftDialog && (
+        <NftDialog currency={nftDialog} options={nfts[nftDialog]} owned={ownedNfts[nftDialog]} cryptoPrice={ownedRows.find((row) => row.asset.name.toUpperCase() === nftDialog)?.price ?? 0} onBuy={(name) => buyNft(nftDialog, name)} onClose={() => setNftDialog(null)} />
       )}
 
       <div className="grid-2 invest-layout">
