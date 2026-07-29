@@ -653,7 +653,6 @@ export function Investments() {
       },
       realizedPnl,
     )
-    setBackupStatus('Exported portfolio JSON (positions + realized P&L).')
   }
 
   const applyImportResult = (result: ImportResult): boolean => {
