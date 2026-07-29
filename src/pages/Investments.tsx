@@ -1145,25 +1145,58 @@ export function Investments() {
                       title={`${shareLabel} · cost basis ${formatMoney(row.firstPrice)} · click to edit`}
                     >
                       <td className="collection-name">
-                        {row.asset.name}
-                        {kind === 'crypto' && (row.asset.name.toUpperCase() === 'ETH' || row.asset.name.toUpperCase() === 'TRB') && (() => {
-                          const currency = row.asset.name.toUpperCase() as NftCurrency
-                          const isOpen = !!nftExpanded[currency]
-                          return (
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-sm nft-inline-btn"
-                              aria-expanded={isOpen}
-                              aria-controls={`nft-panel-${currency}`}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setNftExpanded((prev) => ({ ...prev, [currency]: !prev[currency] }))
-                              }}
-                            >
-                              {isOpen ? '− NFTs' : '+ NFTs'}
-                            </button>
-                          )
-                        })()}
+                        {kind === 'crypto' &&
+                        (row.asset.name.toUpperCase() === 'ETH' ||
+                          row.asset.name.toUpperCase() === 'TRB') ? (
+                          (() => {
+                            const currency = row.asset.name.toUpperCase() as NftCurrency
+                            const isOpen = !!nftExpanded[currency]
+                            const parkedCoins = nftCost(currency)
+                            const ownedCount = ownedNfts[currency].length
+                            // Mark-to-market of parked NFTs (static coin prices × live coin price).
+                            const nftUsd =
+                              ownedCount > 0 && row.priceValid && parkedCoins > 0
+                                ? parkedCoins * row.price
+                                : null
+                            return (
+                              <div className="nft-asset-cell">
+                                <div className="nft-asset-row">
+                                  <span className="nft-asset-name">{row.asset.name}</span>
+                                  <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm nft-inline-btn"
+                                    aria-expanded={isOpen}
+                                    aria-controls={`nft-panel-${currency}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setNftExpanded((prev) => ({
+                                        ...prev,
+                                        [currency]: !prev[currency],
+                                      }))
+                                    }}
+                                  >
+                                    {isOpen ? '− NFTs' : '+ NFTs'}
+                                  </button>
+                                </div>
+                                {!isOpen && ownedCount > 0 && (
+                                  <div
+                                    className="nft-collapsed-value"
+                                    title={`${ownedCount} NFT${ownedCount === 1 ? '' : 's'} · ${parkedCoins.toLocaleString()} ${currency} parked`}
+                                  >
+                                    <span className="nft-collapsed-label">
+                                      {ownedCount} NFT{ownedCount === 1 ? '' : 's'}
+                                    </span>
+                                    <span className="nft-collapsed-usd">
+                                      {nftUsd != null ? formatMoney(nftUsd) : '—'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })()
+                        ) : (
+                          row.asset.name
+                        )}
                       </td>
                       <td className="num-cell">
                         {row.priceValid ? formatMoney(row.price) : '—'}

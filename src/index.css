@@ -1477,9 +1477,51 @@ button.verdict-banner-clickable:focus-visible {
 
 .owned-assets-table .collection-name {
   font-weight: 600;
-  max-width: 10rem;
+  max-width: 14rem;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: normal;
+}
+
+.nft-asset-cell {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.nft-asset-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.nft-asset-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nft-collapsed-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.nft-collapsed-label {
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.nft-collapsed-usd {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
 .owned-assets-table .num-cell {
@@ -1618,7 +1660,8 @@ button.verdict-banner-clickable:focus-visible {
 }
 .nft-total { border-top: 1px solid var(--border-subtle); padding: 0.55rem 0.3rem 0; color: var(--accent); }
 .nft-inline-btn {
-  margin-left: 0.55rem;
+  margin-left: 0;
+  flex-shrink: 0;
   padding: 0.35rem 0.7rem;
   vertical-align: middle;
   color: #fff;

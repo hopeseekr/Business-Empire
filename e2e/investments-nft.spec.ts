@@ -48,6 +48,12 @@ test.describe('NFT buy/sell adjusts liquid coin balance', () => {
     await expect(ethRow).toContainText('$198,000.00')
     await expect(page.locator('.nft-register')).toContainText('neo')
     await expect(page.locator('.nft-register')).toContainText('99 liquid ETH')
+
+    // Collapse accordion: row shows parked NFT mark-to-market under ETH (1 × $2000).
+    await ethRow.getByRole('button', { name: /− NFTs/i }).click()
+    await expect(page.locator('.nft-register')).toHaveCount(0)
+    await expect(ethRow.locator('.nft-collapsed-value')).toContainText('1 NFT')
+    await expect(ethRow.locator('.nft-collapsed-usd')).toHaveText('$2,000.00')
   })
 
   test('selling an NFT adds its fixed ETH price back to holdings', async ({ page }) => {
