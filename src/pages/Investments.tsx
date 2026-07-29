@@ -1104,22 +1104,24 @@ export function Investments() {
                   <div className="nft-group nft-group-open" key={currency} id={`nft-panel-${currency}`}>
                     <div className="nft-group-top">
                       <div className="nft-group-heading">
-                        <strong>{currency} portfolio</strong>
-                        <span className="results-count">
-                          {ownedSorted.length === 0
-                            ? 'none owned'
-                            : `${ownedSorted.length} owned`}
+                        <strong>NFT Collection</strong>
+                        <span className="nft-owned-with-trade">
+                          <span className="results-count">
+                            {ownedSorted.length === 0
+                              ? 'none owned'
+                              : `${ownedSorted.length} owned`}
+                          </span>
+                          <button
+                            type="button"
+                            className="nft-buy-round"
+                            onClick={() => setNftDialog(currency)}
+                            aria-label={`Trade ${currency} NFT`}
+                            title={`Trade ${currency} NFT`}
+                          >
+                            Trade
+                          </button>
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        className="nft-buy-round"
-                        onClick={() => setNftDialog(currency)}
-                        aria-label={`Buy ${currency} NFT`}
-                        title={`Buy ${currency} NFT`}
-                      >
-                        Buy
-                      </button>
                     </div>
                     {ownedSorted.length === 0 ? (
                       <p className="nft-empty">No NFTs yet — tap Buy to collect.</p>

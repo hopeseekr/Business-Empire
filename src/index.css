@@ -1524,21 +1524,24 @@ button.verdict-banner-clickable:focus-visible {
 .nft-group-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
   margin-bottom: 0.65rem;
   min-width: 28rem;
 }
 .nft-group-heading {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 0.45rem 0.75rem;
   min-width: 0;
 }
 .nft-group-heading strong {
   font-size: 0.92rem;
   color: var(--text);
+}
+.nft-owned-with-trade {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 .nft-buy-round {
   flex-shrink: 0;
@@ -1549,9 +1552,9 @@ button.verdict-banner-clickable:focus-visible {
   border-radius: 50%;
   background: var(--accent-strong);
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   line-height: 1;
   cursor: pointer;
   display: inline-flex;
