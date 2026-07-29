@@ -82,6 +82,20 @@ function kindShort(kind: InvestmentKind): string {
   return 'Bullion'
 }
 
+function formatCompactCount(value: number): string {
+  const absolute = Math.abs(value)
+  const suffixes = [
+    { threshold: 1e12, suffix: 'T' },
+    { threshold: 1e9, suffix: 'B' },
+    { threshold: 1e6, suffix: 'M' },
+    { threshold: 1e3, suffix: 'K' },
+  ]
+  const match = suffixes.find(({ threshold }) => absolute >= threshold)
+  if (!match) return value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  const compact = value / match.threshold
+  return `${compact.toFixed(2).replace(/\.?(0+)$/, '')}${match.suffix}`
+}
+
 function assetsCount(kind: InvestmentKind): number {
   return assetsFor(kind).length
 }
@@ -1144,7 +1158,9 @@ export function Investments() {
                             return (
                               <div className="nft-asset-cell">
                                 <div className="nft-asset-row">
-                                  <span className="nft-asset-name">{row.asset.name}</span>
+                                  <span className="nft-asset-name">
+                                    {row.asset.name} · {formatCompactCount(row.shares)} {unitWord(row.asset, 'plural')}
+                                  </span>
                                   <button
                                     type="button"
                                     className="btn btn-ghost btn-sm nft-inline-btn"
@@ -1178,7 +1194,9 @@ export function Investments() {
                             )
                           })()
                         ) : (
-                          row.asset.name
+                          <>
+                            {row.asset.name} · {formatCompactCount(row.shares)} {unitWord(row.asset, 'plural')}
+                          </>
                         )}
                       </td>
                       <td className="num-cell">
