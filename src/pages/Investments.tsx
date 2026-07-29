@@ -773,6 +773,7 @@ export function Investments() {
         entries,
       },
       realizedPnl,
+      ownedNfts,
     )
   }
 
@@ -791,6 +792,8 @@ export function Investments() {
         return false
       }
       applyImportedPrefs(result.investments)
+      setOwnedNfts(result.ownedNfts)
+      saveOwnedNfts(result.ownedNfts)
       setRealizedPnl(result.realizedPnl)
       saveRealizedPnl(result.realizedPnl)
       const n = Object.keys(result.investments.entries).length
