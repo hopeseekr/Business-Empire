@@ -991,19 +991,12 @@ export function Investments() {
                   <th scope="col">Unrealized</th>
                   <th scope="col">Realized</th>
                   <th scope="col">Max potential</th>
-                  <th scope="col">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {ownedRows.map((row) => {
                   const isSelected =
                     selected?.kind === row.asset.kind && selected.id === row.asset.id
-                  const actionClass =
-                    row.action === 'BUY'
-                      ? 'action-buy'
-                      : row.action === 'SELL'
-                        ? 'action-sell'
-                        : 'action-hold'
                   const potPositive = row.maxPotential >= 0
                   const gainPositive = row.gainLoss > 0
                   const gainNegative = row.gainLoss < 0
@@ -1071,32 +1064,6 @@ export function Investments() {
                         ) : (
                           '—'
                         )}
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className={`action-chip action-chip-btn ${actionClass}`}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (!row.priceValid) return
-                            // Select so main Current price field stays in sync with the dialog.
-                            selectAsset(row.asset)
-                            setTradePosition(row)
-                          }}
-                          disabled={!row.priceValid}
-                          title={
-                            row.priceValid
-                              ? `Trade ${row.asset.name}`
-                              : 'Enter a current price greater than 0 to trade'
-                          }
-                          aria-label={
-                            row.priceValid
-                              ? `Open buy or sell dialog for ${row.asset.name}, signal ${row.action}`
-                              : `Cannot trade ${row.asset.name} without a current price`
-                          }
-                        >
-                          {row.action}
-                        </button>
                       </td>
                     </tr>
                   )
