@@ -1033,7 +1033,7 @@ export function Investments() {
                           return (
                             <button
                               type="button"
-                              className={`btn btn-ghost btn-sm nft-inline-btn${isOpen ? ' open' : ''}`}
+                              className="btn btn-ghost btn-sm nft-inline-btn"
                               aria-expanded={isOpen}
                               aria-controls={`nft-panel-${currency}`}
                               onClick={(e) => {
