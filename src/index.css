@@ -1505,9 +1505,13 @@ button.verdict-banner-clickable:focus-visible {
 
 .nft-register { border-top: 1px solid var(--border); padding: 1rem; display: grid; gap: 0.8rem; }
 .nft-group { background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: 0.75rem; }
-.nft-group ul { margin: 0.65rem 0; padding-left: 1.2rem; }
-.nft-group li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.2rem 0; color: var(--text-muted); }
-.nft-total { display: flex; justify-content: space-between; border-top: 1px solid var(--border-subtle); padding-top: 0.55rem; color: var(--accent); }
+.nft-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(6rem, auto) minmax(7rem, auto); gap: 1rem; align-items: center; }
+.nft-columns-header { padding: 0 0.3rem 0.35rem; color: var(--text-muted); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+.nft-group ul { margin: 0 0 0.65rem; padding: 0; list-style: none; }
+.nft-group li { padding: 0.4rem 0.3rem; color: var(--text-muted); }
+.nft-group li + li { border-top: 1px solid var(--border-subtle); }
+.nft-group li > :not(:first-child), .nft-columns > :not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.nft-total { border-top: 1px solid var(--border-subtle); padding: 0.55rem 0.3rem 0; color: var(--accent); }
 .nft-inline-btn { margin-left: 0.55rem; padding: 0.35rem 0.7rem; vertical-align: middle; color: #fff; background: var(--info); border: 1px solid var(--info); font-weight: 800; border-radius: var(--radius-pill); box-shadow: var(--shadow-sm); }
 .nft-inline-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .nft-picker { display: grid; gap: 0.5rem; margin: 0.25rem 0 1rem; }

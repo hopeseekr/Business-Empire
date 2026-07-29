@@ -1073,12 +1073,12 @@ export function Investments() {
           </div>
           {kind === 'crypto' && Object.values(ownedNfts).some((items) => items.length > 0) && ownedRows.some((row) => row.asset.name.toUpperCase() === 'ETH' || row.asset.name.toUpperCase() === 'TRB') && (
             <div className="nft-register">
-              <div className="row"><h4 className="section-title" style={{ margin: 0 }}>NFTs</h4><span className="results-count spacer">fixed prices · live floating values</span></div>
+              <div className="row"><h4 className="section-title" style={{ margin: 0 }}>NFTs</h4><span className="results-count spacer">fixed prices · current dollar value</span></div>
               {(['ETH', 'TRB'] as NftCurrency[]).map((currency) => {
                 const row = ownedRows.find((item) => item.asset.name.toUpperCase() === currency)
                 if (!row) return null
-                const floating = row.priceValid ? row.price : 0
-                return <div className="nft-group" key={currency}><div className="row"><strong>{currency}</strong><button type="button" className="btn btn-ghost btn-sm spacer" onClick={() => setNftDialog(currency)}>+ NFTs</button></div><ul>{ownedNfts[currency].map((name) => { const item = nfts[currency].find((n) => n.name === name)!; return <li key={name}><span>{name}</span><span>{item.price.toLocaleString()} {currency} · {floating > 0 ? formatMoney(item.price * floating) : '—'} floating</span></li> })}</ul><div className="nft-total"><span>Real {currency} investment</span><strong>{nftCost(currency).toLocaleString()} {currency}</strong></div></div>
+                const currentPrice = row.priceValid ? row.price : 0
+                return <div className="nft-group" key={currency}><div className="nft-columns nft-columns-header"><span>NFT</span><span>{currency}</span><span>Dollars</span></div><ul>{ownedNfts[currency].map((name) => { const item = nfts[currency].find((n) => n.name === name)!; return <li key={name}><span>{name}</span><span>{item.price.toLocaleString()}</span><span>{currentPrice > 0 ? formatMoney(item.price * currentPrice) : '—'}</span></li> })}</ul><div className="nft-total nft-columns"><span>Real {currency} investment</span><strong>{nftCost(currency).toLocaleString()}</strong><strong>{currentPrice > 0 ? formatMoney(nftCost(currency) * currentPrice) : '—'}</strong></div></div>
               })}
             </div>
           )}
