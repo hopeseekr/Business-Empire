@@ -17,8 +17,6 @@ export interface TradePosition {
   totalInvestment: number
   gainLoss: number
   gainLossPct: number
-  maxPotential: number
-  potentialPct: number
   action: TradeAction
   /** Exact input strings used by trade accounting. */
   sharesText: string
@@ -366,17 +364,6 @@ export function TradeDialog({
                 }`}
               >
                 {formatSignedMoney(sessionRealized)}
-              </span>
-            </div>
-            <div>
-              <span className="trade-record-label">Max potential</span>
-              <span
-                className={`trade-record-value ${
-                  position.maxPotential >= 0 ? 'pot-up' : 'pot-down'
-                }`}
-              >
-                {formatMoney(position.maxPotential)}{' '}
-                <span className="pot-pct">({formatPct(position.potentialPct)})</span>
               </span>
             </div>
             <div>

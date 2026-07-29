@@ -64,8 +64,6 @@ interface OwnedRow {
   totalInvestment: number
   gainLoss: number
   gainLossPct: number
-  maxPotential: number
-  potentialPct: number
   action: TradeAction
   priceText: string
   sharesText: string
@@ -365,8 +363,6 @@ export function Investments() {
           totalInvestment: sharesHeld ? displayBasis * shares : 0,
           gainLoss: 0,
           gainLossPct: 0,
-          maxPotential: 0,
-          potentialPct: 0,
           action: 'HOLD',
           priceText: entry.price,
           sharesText: entry.shares,
@@ -391,8 +387,6 @@ export function Investments() {
         totalInvestment,
         gainLoss,
         gainLossPct,
-        maxPotential: analysis.totalUpside ?? (asset.max - livePrice) * shares,
-        potentialPct: analysis.potentialPct,
         action: analysis.action,
         priceText: entry.price,
         sharesText: entry.shares,
@@ -614,8 +608,6 @@ export function Investments() {
           totalInvestment: held > 0 && basis > 0 ? basis * held : 0,
           gainLoss: 0,
           gainLossPct: 0,
-          maxPotential: 0,
-          potentialPct: 0,
           action: 'HOLD',
         }
       }
@@ -629,8 +621,6 @@ export function Investments() {
         gainLoss: held > 0 ? (priceVal - basis) * held : 0,
         gainLossPct:
           held > 0 && basis > 0 ? ((priceVal - basis) / basis) * 100 : 0,
-        maxPotential: held > 0 ? (asset.max - priceVal) * held : 0,
-        potentialPct: analysis.potentialPct,
         action: analysis.action,
       }
     })
@@ -730,8 +720,6 @@ export function Investments() {
         held > 0 && firstPriceVal > 0
           ? ((priceVal - firstPriceVal) / firstPriceVal) * 100
           : 0,
-      maxPotential: held > 0 ? (selected.max - priceVal) * held : 0,
-      potentialPct: live.potentialPct,
       action: live.action,
       priceText: priceInput,
       sharesText: sharesInput,
@@ -1107,14 +1095,12 @@ export function Investments() {
                   <th scope="col">Total inv.</th>
                   <th scope="col">Unrealized</th>
                   <th scope="col">Realized</th>
-                  <th scope="col">Max potential</th>
                 </tr>
               </thead>
               <tbody>
                 {ownedRows.map((row) => {
                   const isSelected =
                     selected?.kind === row.asset.kind && selected.id === row.asset.id
-                  const potPositive = row.maxPotential >= 0
                   const gainPositive = row.gainLoss > 0
                   const gainNegative = row.gainLoss < 0
                   const gainClass = row.metricsReady
@@ -1213,20 +1199,6 @@ export function Investments() {
                       </td>
                       <td className={`num-cell ${realizedClass ?? ''}`.trim()}>
                         {formatSignedMoney(realized)}
-                      </td>
-                      <td
-                        className={`num-cell ${
-                          row.metricsReady ? (potPositive ? 'pot-up' : 'pot-down') : ''
-                        }`.trim()}
-                      >
-                        {row.metricsReady ? (
-                          <>
-                            {formatMoney(row.maxPotential)}{' '}
-                            <span className="pot-pct">({formatPct(row.potentialPct)})</span>
-                          </>
-                        ) : (
-                          '—'
-                        )}
                       </td>
                     </tr>
                   )
