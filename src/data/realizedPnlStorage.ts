@@ -1,12 +1,13 @@
 import type { InvestmentKind } from '../types'
 import { assetStorageKey } from './investmentStorage'
+import { addFixed8, formatFixed8, parseFixed8, realizedSellPnl } from './fixedPoint'
 
 /** Persists across tabs and browser restarts (localStorage). */
 const STORAGE_KEY = 'business-empire.realized-pnl.v1'
 
 export interface AssetRealizedPnl {
   /** Cumulative realized $ P&L for this asset. */
-  realized: number
+  realized: string
   /** Number of sell lots recorded. */
   sellCount: number
   name: string
@@ -16,9 +17,9 @@ export interface RealizedPnlState {
   version: 1
   /** Totals by market bucket. */
   byKind: {
-    stock: number
-    crypto: number
-    bullion: number
+    stock: string
+    crypto: string
+    bullion: string
   }
   /** Per-asset cumulative realized P&L (`kind:id` → stats). */
   byAsset: Record<string, AssetRealizedPnl>
@@ -27,7 +28,7 @@ export interface RealizedPnlState {
 function emptyState(): RealizedPnlState {
   return {
     version: 1,
-    byKind: { stock: 0, crypto: 0, bullion: 0 },
+    byKind: { stock: '0', crypto: '0', bullion: '0' },
     byAsset: {},
   }
 }
@@ -44,21 +45,19 @@ export function loadRealizedPnl(): RealizedPnlState {
 
     const parsed = JSON.parse(raw) as Partial<RealizedPnlState>
     const byKind = {
-      stock: Number.isFinite(parsed.byKind?.stock) ? Number(parsed.byKind!.stock) : 0,
-      crypto: Number.isFinite(parsed.byKind?.crypto) ? Number(parsed.byKind!.crypto) : 0,
-      bullion: Number.isFinite(parsed.byKind?.bullion)
-        ? Number(parsed.byKind!.bullion)
-        : 0,
+      stock: parseStoredAmount(parsed.byKind?.stock),
+      crypto: parseStoredAmount(parsed.byKind?.crypto),
+      bullion: parseStoredAmount(parsed.byKind?.bullion),
     }
 
     const byAsset: Record<string, AssetRealizedPnl> = {}
     if (parsed.byAsset && typeof parsed.byAsset === 'object') {
       for (const [key, value] of Object.entries(parsed.byAsset)) {
         if (!value || typeof value !== 'object') continue
-        const realized = Number((value as AssetRealizedPnl).realized)
+        const realized = parseStoredAmount((value as AssetRealizedPnl).realized)
         const sellCount = Number((value as AssetRealizedPnl).sellCount)
         const name = String((value as AssetRealizedPnl).name ?? key)
-        if (!Number.isFinite(realized)) continue
+        if (realized == null) continue
         byAsset[key] = {
           realized,
           sellCount: Number.isFinite(sellCount) ? sellCount : 0,
@@ -71,6 +70,11 @@ export function loadRealizedPnl(): RealizedPnlState {
   } catch {
     return emptyState()
   }
+}
+
+function parseStoredAmount(value: unknown): string {
+  const parsed = parseFixed8(String(value ?? ''))
+  return parsed == null ? '0' : formatFixed8(parsed)
 }
 
 export function saveRealizedPnl(state: RealizedPnlState): void {
@@ -90,15 +94,13 @@ export function recordRealizedSell(
   kind: InvestmentKind,
   id: number,
   name: string,
-  sellPrice: number,
-  costBasis: number,
-  sharesSold: number,
+  sellPrice: string,
+  costBasis: string,
+  sharesSold: string,
 ): RealizedPnlState {
   if (!isKind(kind)) return state
-  if (!(sharesSold > 0) || !(sellPrice > 0) || !(costBasis > 0)) return state
-
-  const delta = (sellPrice - costBasis) * sharesSold
-  if (!Number.isFinite(delta)) return state
+  const delta = realizedSellPnl(sellPrice, costBasis, sharesSold)
+  if (delta == null) return state
 
   const key = assetStorageKey(kind, id)
   const prev = state.byAsset[key]
@@ -107,13 +109,13 @@ export function recordRealizedSell(
     version: 1,
     byKind: {
       ...state.byKind,
-      [kind]: state.byKind[kind] + delta,
+      [kind]: addFixed8(state.byKind[kind], delta) ?? state.byKind[kind],
     },
     byAsset: {
       ...state.byAsset,
       [key]: {
         name,
-        realized: (prev?.realized ?? 0) + delta,
+        realized: addFixed8(prev?.realized ?? '0', delta) ?? prev?.realized ?? '0',
         sellCount: (prev?.sellCount ?? 0) + 1,
       },
     },
@@ -128,7 +130,8 @@ export function getAssetRealized(
   return state.byAsset[assetStorageKey(kind, id)] ?? null
 }
 
-export function formatSignedMoney(n: number): string {
+export function formatSignedMoney(value: string | number): string {
+  const n = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(n)) return '—'
   const abs = Math.abs(n)
   const formatted = new Intl.NumberFormat('en-US', {

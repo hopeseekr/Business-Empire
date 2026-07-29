@@ -75,11 +75,9 @@ function parseRealizedPnl(raw: unknown): RealizedPnlState | null {
   if (!raw || typeof raw !== 'object') return null
   const parsed = raw as Partial<RealizedPnlState>
   const byKind = {
-    stock: Number.isFinite(parsed.byKind?.stock) ? Number(parsed.byKind!.stock) : 0,
-    crypto: Number.isFinite(parsed.byKind?.crypto) ? Number(parsed.byKind!.crypto) : 0,
-    bullion: Number.isFinite(parsed.byKind?.bullion)
-      ? Number(parsed.byKind!.bullion)
-      : 0,
+    stock: parseAmount(parsed.byKind?.stock),
+    crypto: parseAmount(parsed.byKind?.crypto),
+    bullion: parseAmount(parsed.byKind?.bullion),
   }
 
   const byAsset: Record<string, AssetRealizedPnl> = {}
@@ -87,10 +85,9 @@ function parseRealizedPnl(raw: unknown): RealizedPnlState | null {
     for (const [key, value] of Object.entries(parsed.byAsset)) {
       if (!value || typeof value !== 'object') continue
       if (!parseAssetMapKey(key)) continue
-      const realized = Number((value as AssetRealizedPnl).realized)
+      const realized = parseAmount((value as AssetRealizedPnl).realized)
       const sellCount = Number((value as AssetRealizedPnl).sellCount)
       const name = String((value as AssetRealizedPnl).name ?? key)
-      if (!Number.isFinite(realized)) continue
       byAsset[key] = {
         realized,
         sellCount: Number.isFinite(sellCount) ? sellCount : 0,
@@ -100,6 +97,15 @@ function parseRealizedPnl(raw: unknown): RealizedPnlState | null {
   }
 
   return { version: 1, byKind, byAsset }
+}
+
+function parseAmount(value: unknown): string {
+  const text = String(value ?? '')
+  return /^[-+]?\d+(?:\.\d{0,8})?$/.test(text)
+    ? text.replace(/^\+/, '')
+    : Number.isFinite(Number(value))
+      ? String(Number(value))
+      : '0'
 }
 
 /** Build a portable backup of positions + realized P&L. */

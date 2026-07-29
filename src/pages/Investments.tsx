@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { TradeDialog, formatShares, unitWord } from '../components/TradeDialog'
+import { TradeDialog, unitWord } from '../components/TradeDialog'
 import {
   analyzeTrade,
   assetsFor,
@@ -15,9 +15,6 @@ import {
 } from '../data/investments'
 import {
   assetStorageKey,
-  averageCostAfterBuy,
-  averageCostAfterSell,
-  formatCostBasis,
   getStoredEntry,
   loadInvestmentPrefs,
   resolveFirstPrice,
@@ -27,6 +24,7 @@ import {
   type InvestmentPrefs,
   type StoredAssetEntry,
 } from '../data/investmentStorage'
+import { addFixed8, formatFixed8, parseFixed8, subtractFixed8, weightedAverageCost } from '../data/fixedPoint'
 import {
   downloadPortfolioBackup,
   parsePortfolioBackup,
@@ -59,6 +57,9 @@ interface OwnedRow {
   maxPotential: number
   potentialPct: number
   action: TradeAction
+  priceText: string
+  sharesText: string
+  firstPriceText: string
 }
 
 function kindTitle(kind: InvestmentKind): string {
@@ -334,6 +335,9 @@ export function Investments() {
           maxPotential: 0,
           potentialPct: 0,
           action: 'HOLD',
+          priceText: entry.price,
+          sharesText: entry.shares,
+          firstPriceText: firstRaw ?? entry.price,
         })
         continue
       }
@@ -357,6 +361,9 @@ export function Investments() {
         maxPotential: analysis.totalUpside ?? (asset.max - livePrice) * shares,
         potentialPct: analysis.potentialPct,
         action: analysis.action,
+        priceText: entry.price,
+        sharesText: entry.shares,
+        firstPriceText: firstRaw ?? entry.price,
       })
     }
 
@@ -380,15 +387,15 @@ export function Investments() {
     saveRealizedPnl(realizedPnl)
   }, [realizedPnl])
 
-  const sessionKindTotal = realizedPnl.byKind[kind]
+  const sessionKindTotal = Number(realizedPnl.byKind[kind])
   const sessionCombinedTotal =
-    realizedPnl.byKind.stock + realizedPnl.byKind.crypto + realizedPnl.byKind.bullion
+    Number(realizedPnl.byKind.stock) + Number(realizedPnl.byKind.crypto) + Number(realizedPnl.byKind.bullion)
   const sessionOtherTotal = sessionCombinedTotal - sessionKindTotal
   const sessionAssetHits = useMemo(() => {
     return Object.entries(realizedPnl.byAsset)
       .filter(([key]) => key.startsWith(`${kind}:`))
       .map(([key, stats]) => ({ key, ...stats }))
-      .sort((a, b) => Math.abs(b.realized) - Math.abs(a.realized))
+      .sort((a, b) => Math.abs(Number(b.realized)) - Math.abs(Number(a.realized)))
   }, [realizedPnl, kind])
 
   useEffect(() => {
@@ -505,15 +512,16 @@ export function Investments() {
    */
   const applyShareDelta = (
     asset: InvestmentAsset,
-    price: number,
-    nextShares: number,
-    costBasis: number | null,
+    price: string,
+    nextShares: string,
+    costBasis: string | null,
   ) => {
-    const priceStr = String(price)
-    const sharesStr = nextShares > 1e-12 ? formatShares(nextShares) : ''
+    const priceStr = price
+    const sharesUnits = parseFixed8(nextShares)
+    const sharesStr = sharesUnits != null && sharesUnits > 0n ? formatFixed8(sharesUnits) : ''
     const basisOpt =
-      costBasis != null && costBasis > 0
-        ? { costBasis: formatCostBasis(costBasis) }
+      costBasis != null && parseFixed8(costBasis)! > 0n
+        ? { costBasis }
         : { costBasis: null as string | null }
     setEntries((prev) =>
       upsertEntry(prev, asset.kind, asset.id, priceStr, sharesStr, basisOpt),
@@ -524,28 +532,24 @@ export function Investments() {
     setSharesInput(sharesStr)
   }
 
-  const handleTradeBuy = (sharesToBuy: number) => {
-    if (!tradePosition || !(sharesToBuy > 0)) return
-    const held = tradePosition.shares
-    const buyPrice = tradePosition.price
-    const next = held + sharesToBuy
-    const newBasis = averageCostAfterBuy(
-      held,
-      tradePosition.firstPrice,
-      sharesToBuy,
-      buyPrice,
-    )
+  const handleTradeBuy = (sharesToBuy: string) => {
+    if (!tradePosition || parseFixed8(sharesToBuy) == null || parseFixed8(sharesToBuy)! <= 0n) return
+    const held = tradePosition.sharesText
+    const buyPrice = priceInput
+    const next = addFixed8(held, sharesToBuy)
+    const newBasis = weightedAverageCost(held, tradePosition.firstPriceText, sharesToBuy, buyPrice)
+    if (!next || !newBasis) return
     applyShareDelta(tradePosition.asset, buyPrice, next, newBasis)
     setTradePosition(null)
   }
 
-  const handleTradeSell = (sharesToSell: number) => {
-    if (!tradePosition || !(sharesToSell > 0)) return
-    const sold = Math.min(sharesToSell, tradePosition.shares)
-    if (!(sold > 0)) return
-
-    const basisPerShare =
-      tradePosition.firstPrice > 0 ? tradePosition.firstPrice : tradePosition.price
+  const handleTradeSell = (sharesToSell: string) => {
+    if (!tradePosition || parseFixed8(sharesToSell) == null || parseFixed8(sharesToSell)! <= 0n) return
+    const soldUnits = parseFixed8(sharesToSell)!
+    const heldUnits = parseFixed8(tradePosition.sharesText)
+    if (heldUnits == null || soldUnits > heldUnits) return
+    const sold = formatFixed8(soldUnits)
+    const basisPerShare = tradePosition.firstPriceText
 
     setRealizedPnl((prev) =>
       recordRealizedSell(
@@ -553,19 +557,16 @@ export function Investments() {
         tradePosition.asset.kind,
         tradePosition.asset.id,
         tradePosition.asset.name,
-        tradePosition.price,
+        priceInput,
         basisPerShare,
         sold,
       ),
     )
 
-    const next = Math.max(0, tradePosition.shares - sold)
-    const remainingBasis = averageCostAfterSell(
-      tradePosition.shares,
-      basisPerShare,
-      sold,
-    )
-    applyShareDelta(tradePosition.asset, tradePosition.price, next, remainingBasis)
+    const next = subtractFixed8(tradePosition.sharesText, sold)
+    if (!next) return
+    const remainingBasis = soldUnits === heldUnits ? null : basisPerShare
+    applyShareDelta(tradePosition.asset, priceInput, next, remainingBasis)
     setTradePosition(null)
   }
 
@@ -600,6 +601,9 @@ export function Investments() {
       maxPotential: held > 0 ? (selected.max - priceVal) * held : 0,
       potentialPct: live.potentialPct,
       action: live.action,
+      priceText: priceInput,
+      sharesText: sharesInput,
+      firstPriceText: firstRaw ?? priceInput,
     })
   }
 
@@ -862,9 +866,9 @@ export function Investments() {
             <span className="session-pnl-label">Stocks</span>
             <span
               className={`session-pnl-value ${
-                realizedPnl.byKind.stock > 0
+                Number(realizedPnl.byKind.stock) > 0
                   ? 'pot-up'
-                  : realizedPnl.byKind.stock < 0
+                  : Number(realizedPnl.byKind.stock) < 0
                     ? 'pot-down'
                     : ''
               }`}
@@ -876,9 +880,9 @@ export function Investments() {
             <span className="session-pnl-label">Crypto</span>
             <span
               className={`session-pnl-value ${
-                realizedPnl.byKind.crypto > 0
+                Number(realizedPnl.byKind.crypto) > 0
                   ? 'pot-up'
-                  : realizedPnl.byKind.crypto < 0
+                  : Number(realizedPnl.byKind.crypto) < 0
                     ? 'pot-down'
                     : ''
               }`}
@@ -890,9 +894,9 @@ export function Investments() {
             <span className="session-pnl-label">Bullion</span>
             <span
               className={`session-pnl-value ${
-                realizedPnl.byKind.bullion > 0
+                Number(realizedPnl.byKind.bullion) > 0
                   ? 'pot-up'
-                  : realizedPnl.byKind.bullion < 0
+                  : Number(realizedPnl.byKind.bullion) < 0
                     ? 'pot-down'
                     : ''
               }`}
@@ -932,7 +936,7 @@ export function Investments() {
                   <span className="session-pnl-asset-name">{a.name}</span>
                   <span
                     className={
-                      a.realized > 0 ? 'pot-up' : a.realized < 0 ? 'pot-down' : undefined
+                      Number(a.realized) > 0 ? 'pot-up' : Number(a.realized) < 0 ? 'pot-down' : undefined
                     }
                   >
                     {formatSignedMoney(a.realized)}
@@ -997,7 +1001,7 @@ export function Investments() {
                   const realized =
                     getAssetRealized(realizedPnl, row.asset.kind, row.asset.id)?.realized ?? 0
                   const realizedClass =
-                    realized > 0 ? 'pot-up' : realized < 0 ? 'pot-down' : undefined
+                    Number(realized) > 0 ? 'pot-up' : Number(realized) < 0 ? 'pot-down' : undefined
                   const units = unitWord(row.asset, 'plural')
                   const shareLabel =
                     row.shares > 0
@@ -1086,7 +1090,7 @@ export function Investments() {
           priceText={priceInput}
           sessionRealized={
             getAssetRealized(realizedPnl, tradePosition.asset.kind, tradePosition.asset.id)
-              ?.realized ?? 0
+              ?.realized ? Number(getAssetRealized(realizedPnl, tradePosition.asset.kind, tradePosition.asset.id)!.realized) : 0
           }
           onClose={() => setTradePosition(null)}
           onBuy={handleTradeBuy}

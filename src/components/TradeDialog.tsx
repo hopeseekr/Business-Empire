@@ -6,6 +6,7 @@ import {
   sanitizeDecimalInput,
 } from '../data/investments'
 import { formatSignedMoney } from '../data/realizedPnlStorage'
+import { divideFixed8, parseFixed8 } from '../data/fixedPoint'
 import type { InvestmentAsset, InvestmentKind, InvestmentUnit, TradeAction } from '../types'
 
 export interface TradePosition {
@@ -19,6 +20,9 @@ export interface TradePosition {
   maxPotential: number
   potentialPct: number
   action: TradeAction
+  /** Exact input strings used by trade accounting. */
+  sharesText: string
+  firstPriceText: string
 }
 
 type AmountMode = 'shares' | 'dollars'
@@ -92,8 +96,8 @@ export function TradeDialog({
   /** Cumulative realized P&L for this ticker (localStorage). */
   sessionRealized?: number
   onClose: () => void
-  onBuy: (shares: number) => void
-  onSell: (shares: number) => void
+  onBuy: (shares: string) => void
+  onSell: (shares: string) => void
   onPriceChange: (value: string) => void
   onPriceBlur?: () => void
 }) {
@@ -102,10 +106,11 @@ export function TradeDialog({
   const [mode, setMode] = useState<AmountMode>('shares')
   const [amount, setAmount] = useState('')
   const [step, setStep] = useState<DialogStep>('edit')
-  const [pendingSellShares, setPendingSellShares] = useState<number | null>(null)
+  const [pendingSellShares, setPendingSellShares] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const { asset, shares: held } = position
+  const heldText = position.sharesText
   const units = unitWord(asset, 'plural')
   const unitsTitle = unitWord(asset, 'title')
 
@@ -175,7 +180,7 @@ export function TradeDialog({
 
   const fillAllShares = () => {
     setMode('shares')
-    setAmount(formatShares(held))
+    setAmount(heldText)
     setError(null)
     setStep('edit')
     setPendingSellShares(null)
@@ -183,11 +188,12 @@ export function TradeDialog({
 
   const requestBuy = () => {
     setError(null)
-    if (!(price > 0)) {
+    if (!((parseFixed8(priceText) ?? 0n) > 0n)) {
       setError('Enter a valid last price greater than 0.')
       return
     }
-    if (resolvedShares == null || resolvedShares <= 0) {
+    const sharesText = mode === 'shares' ? amount : divideFixed8(amount, priceText)
+    if ((parseFixed8(sharesText ?? '') ?? 0n) <= 0n) {
       setError(
         mode === 'shares'
           ? `Enter how many ${units} to buy.`
@@ -195,20 +201,23 @@ export function TradeDialog({
       )
       return
     }
-    onBuy(resolvedShares)
+    onBuy(sharesText!)
   }
 
   const requestSell = () => {
     setError(null)
-    if (!(price > 0)) {
+    if (!((parseFixed8(priceText) ?? 0n) > 0n)) {
       setError('Enter a valid last price greater than 0.')
       return
     }
-    if (held <= 0) {
+    const heldUnits = parseFixed8(heldText)
+    if (heldUnits == null || heldUnits <= 0n) {
       setError(`You have no ${units} to sell.`)
       return
     }
-    if (resolvedShares == null || resolvedShares <= 0) {
+    const sharesText = mode === 'shares' ? amount : divideFixed8(amount, priceText)
+    const sharesUnits = parseFixed8(sharesText ?? '')
+    if (sharesUnits == null || sharesUnits <= 0n) {
       setError(
         mode === 'shares'
           ? `Enter how many ${units} to sell.`
@@ -217,31 +226,25 @@ export function TradeDialog({
       return
     }
 
-    let sharesToSell = resolvedShares
-    if (sharesToSell > held + 1e-12) {
+    if (sharesUnits > heldUnits) {
       setError(
         mode === 'shares'
           ? `You only hold ${formatShares(held)} ${units}.`
-          : `That is about ${formatShares(sharesToSell)} ${units}; you only hold ${formatShares(held)}.`,
+          : `That is about ${sharesText} ${units}; you only hold ${heldText}.`,
       )
       return
     }
-    // Snap tiny float overshoot to full position.
-    if (Math.abs(sharesToSell - held) < 1e-9 || sharesToSell > held) {
-      sharesToSell = held
-    }
-
     if (mode === 'dollars') {
-      setPendingSellShares(sharesToSell)
+      setPendingSellShares(sharesText!)
       setStep('sell-confirm')
       return
     }
 
-    onSell(sharesToSell)
+    onSell(sharesText!)
   }
 
   const confirmDollarSell = () => {
-    if (pendingSellShares == null || pendingSellShares <= 0) return
+    if (pendingSellShares == null || (parseFixed8(pendingSellShares) ?? 0n) <= 0n) return
     onSell(pendingSellShares)
   }
 
@@ -455,7 +458,7 @@ export function TradeDialog({
             <h3 className="trade-confirm-title">Confirm SELL</h3>
             <p className="trade-confirm-body">
               Sell exactly{' '}
-              <strong className="pot-down">{formatShares(pendingSellShares ?? 0)}</strong> {units}{' '}
+              <strong className="pot-down">{pendingSellShares ?? '0'}</strong> {units}{' '}
               of <strong>{asset.name}</strong> at{' '}
               <strong>{price > 0 ? formatMoney(price) : '—'}</strong>.
             </p>
@@ -468,13 +471,13 @@ export function TradeDialog({
                 Proceeds ≈{' '}
                 <strong>
                   {price > 0
-                    ? formatMoney((pendingSellShares ?? 0) * price)
+                    ? formatMoney(Number(pendingSellShares ?? 0) * price)
                     : '—'}
                 </strong>
               </li>
               <li>
                 {unitsTitle} remaining:{' '}
-                <strong>{formatShares(Math.max(0, held - (pendingSellShares ?? 0)))}</strong>
+                <strong>{formatShares(Math.max(0, held - Number(pendingSellShares ?? 0)))}</strong>
               </li>
             </ul>
             {error && <div className="field-error">{error}</div>}
