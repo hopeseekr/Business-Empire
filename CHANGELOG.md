@@ -1,3 +1,11 @@
+## v1.5.0
+
+* **[2026-07-29 08:02:01 EEST]** Add Playwright as an e2e test runner
+* **[2026-07-29 05:34:16 EEST]** Make total invested editable for precise price calculation
+* **[2026-07-29 05:27:15 EEST]** Use exact fixed-point accounting for investment trades.
+* **[2026-07-29 05:16:31 EEST]** Added observed data for gold and silver bullion.
+* **[2026-07-29 05:11:30 EEST]** Cleaned up the clothing brands data.
+
 ## v1.4.0
 
 * **[2026-07-28 11:21:55 EEST]** Replace the average metric with distance from minimum.
