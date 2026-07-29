@@ -5,6 +5,7 @@ import {
   type StoredAssetEntry,
 } from './investmentStorage'
 import type { AssetRealizedPnl, RealizedPnlState } from './realizedPnlStorage'
+import { nfts, type NftCurrency, type OwnedNfts } from './nfts'
 
 /** Full portfolio backup schema version. */
 export const PORTFOLIO_BACKUP_VERSION = 1 as const
@@ -23,6 +24,7 @@ export interface PortfolioBackup {
     entries: Record<string, StoredAssetEntry>
   }
   realizedPnl: RealizedPnlState
+  ownedNfts: OwnedNfts
 }
 
 export type ImportResult =
@@ -31,6 +33,7 @@ export type ImportResult =
       mode: 'full'
       investments: InvestmentPrefs
       realizedPnl: RealizedPnlState
+      ownedNfts: OwnedNfts
     }
   | {
       ok: true
@@ -108,10 +111,28 @@ function parseAmount(value: unknown): string {
       : '0'
 }
 
+function parseOwnedNfts(raw: unknown): OwnedNfts {
+  const result: OwnedNfts = { ETH: [], TRB: [] }
+  if (!raw || typeof raw !== 'object') return result
+
+  for (const currency of ['ETH', 'TRB'] as const) {
+    const names = (raw as Partial<Record<NftCurrency, unknown>>)[currency]
+    if (!Array.isArray(names)) continue
+    result[currency] = names.filter(
+      (name, index): name is string =>
+        typeof name === 'string' &&
+        names.indexOf(name) === index &&
+        nfts[currency].some((definition) => definition.name === name),
+    )
+  }
+  return result
+}
+
 /** Build a portable backup of positions + realized P&L. */
 export function buildPortfolioBackup(
   prefs: InvestmentPrefs,
   realizedPnl: RealizedPnlState,
+  ownedNfts: OwnedNfts = { ETH: [], TRB: [] },
 ): PortfolioBackup {
   return {
     version: PORTFOLIO_BACKUP_VERSION,
@@ -126,6 +147,10 @@ export function buildPortfolioBackup(
       version: 1,
       byKind: { ...realizedPnl.byKind },
       byAsset: { ...realizedPnl.byAsset },
+    },
+    ownedNfts: {
+      ETH: [...ownedNfts.ETH],
+      TRB: [...ownedNfts.TRB],
     },
   }
 }
@@ -183,6 +208,7 @@ export function parsePortfolioBackup(raw: unknown): ImportResult {
         entries,
       },
       realizedPnl,
+      ownedNfts: parseOwnedNfts(obj.ownedNfts),
     }
   }
 
@@ -204,8 +230,9 @@ export function parsePortfolioBackup(raw: unknown): ImportResult {
 export function downloadPortfolioBackup(
   prefs: InvestmentPrefs,
   realizedPnl: RealizedPnlState,
+  ownedNfts: OwnedNfts = { ETH: [], TRB: [] },
 ): void {
-  const backup = buildPortfolioBackup(prefs, realizedPnl)
+  const backup = buildPortfolioBackup(prefs, realizedPnl, ownedNfts)
   const stamp = new Date().toISOString().slice(0, 10)
   const filename = `business-empire-portfolio-${stamp}.json`
   const blob = new Blob([JSON.stringify(backup, null, 2)], {

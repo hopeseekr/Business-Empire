@@ -1,5 +1,7 @@
 ## v1.5.0
 
+* **[2026-07-29 14:04:51 EEST]** Show parked NFT mark-to-market under ETH/TRB when the accordion is collapsed.
+* **[2026-07-29 13:38:38 EEST]** NFT buy spends liquid ETH/TRB; sell returns fixed coin prices to the bag.
 * **[2026-07-29 08:02:01 EEST]** Add Playwright as an e2e test runner
 * **[2026-07-29 05:34:16 EEST]** Make total invested editable for precise price calculation
 * **[2026-07-29 05:27:15 EEST]** Use exact fixed-point accounting for investment trades.
