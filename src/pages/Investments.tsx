@@ -2,7 +2,15 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FocusEvent
 import { Link } from 'react-router-dom'
 import { TradeDialog, unitWord } from '../components/TradeDialog'
 import { NftDialog } from '../components/NftDialog'
-import { loadOwnedNfts, nfts, saveOwnedNfts, type NftCurrency, type OwnedNfts } from '../data/nfts'
+import {
+  loadOwnedNfts,
+  nftPriceShares,
+  nftTotalPrice,
+  nfts,
+  saveOwnedNfts,
+  type NftCurrency,
+  type OwnedNfts,
+} from '../data/nfts'
 import {
   analyzeTrade,
   assetsFor,
@@ -279,17 +287,27 @@ export function Investments() {
 
   const matches = useMemo(() => searchAssets(kind, query), [kind, query])
 
-  const nftCost = (currency: NftCurrency) =>
-    ownedNfts[currency].reduce(
-      (sum, name) => sum + (nfts[currency].find((n) => n.name === name)?.price ?? 0),
-      0,
-    )
+  const nftCost = (currency: NftCurrency) => nftTotalPrice(currency, ownedNfts[currency])
+
+  /** Crypto asset that backs NFT trades for ETH / TRB. */
+  const cryptoAssetForNft = (currency: NftCurrency) =>
+    cryptos.find((c) => c.name.toUpperCase() === currency) ?? null
+
+  /** Liquid coin balance available to spend on NFTs (not parked in owned NFTs). */
+  const liquidCoinsFor = (currency: NftCurrency): number => {
+    const asset = cryptoAssetForNft(currency)
+    if (!asset) return 0
+    const entry = getStoredEntry(entries, 'crypto', asset.id)
+    const held = parseUserNumber(entry.shares)
+    return held != null && held > 0 ? held : 0
+  }
 
   /**
    * Owned / register rows for the active Stocks / Crypto / Bullion tab.
    * Keep a row while shares are held (or both fields still present mid-edit), even if
    * Current price is temporarily blank/zero. Do not invent a live price from cost basis
    * for gain math — incomplete rows show "—" until price and shares are both valid again.
+   * NFT spend reduces liquid coin shares directly, so mark-to-market is just price × shares.
    */
   const ownedRows = useMemo((): OwnedRow[] => {
     const list = assetsFor(kind)
@@ -305,14 +323,21 @@ export function Investments() {
       const sharesHeld = sharesVal != null && sharesVal > 0
       const priceFieldSet = entry.price.trim() !== ''
       const sharesFieldSet = entry.shares.trim() !== ''
+      const ticker = asset.name.toUpperCase()
+      const hasNfts =
+        kind === 'crypto' &&
+        (ticker === 'ETH' || ticker === 'TRB') &&
+        ownedNfts[ticker as NftCurrency].length > 0
 
       const firstRaw = resolveFirstPrice(entry)
       const firstPriceVal = firstRaw ? parseUserNumber(firstRaw) : null
 
       // Holding shares always stays on the register. Price-only lookups stay out.
       // Both fields still present (incl. "0") after a basis exists keeps mid-edit zeros.
+      // Zero liquid coins with owned NFTs stays so the NFT panel remains reachable.
       const inRegister =
         sharesHeld ||
+        hasNfts ||
         (sharesFieldSet &&
           priceFieldSet &&
           firstPriceVal != null &&
@@ -326,7 +351,10 @@ export function Investments() {
           : priceValid
             ? priceVal!
             : 0
-      if (!(basis > 0)) continue
+      // NFT-parked positions may have zero liquid coins; still show the row when NFTs exist.
+      if (!(basis > 0) && !hasNfts) continue
+      const displayBasis = basis > 0 ? basis : priceValid ? priceVal! : 0
+      if (!(displayBasis > 0) && !hasNfts) continue
 
       const metricsReady = priceValid && sharesHeld
       const livePrice = priceValid ? priceVal! : 0
@@ -336,11 +364,11 @@ export function Investments() {
           asset,
           price: livePrice,
           priceValid,
-          firstPrice: basis,
+          firstPrice: displayBasis,
           shares,
           metricsReady: false,
           // Rank by cost basis capital so the row does not jump while editing price.
-          totalInvestment: sharesHeld ? basis * shares : 0,
+          totalInvestment: sharesHeld ? displayBasis * shares : 0,
           gainLoss: 0,
           gainLossPct: 0,
           maxPotential: 0,
@@ -354,16 +382,16 @@ export function Investments() {
       }
 
       const analysis = analyzeTrade(asset, livePrice, shares)
-      // Mark-to-market value = live price × shares (unrealized portfolio value).
-      const totalInvestment = livePrice * shares - (kind === 'crypto' && asset.name.toUpperCase() === 'ETH' ? nftCost('ETH') : kind === 'crypto' && asset.name.toUpperCase() === 'TRB' ? nftCost('TRB') : 0)
-      const gainLoss = (livePrice - basis) * shares
-      const gainLossPct = ((livePrice - basis) / basis) * 100
+      // Mark-to-market liquid bag only — NFT buy already reduced `shares`.
+      const totalInvestment = livePrice * shares
+      const gainLoss = (livePrice - displayBasis) * shares
+      const gainLossPct = displayBasis > 0 ? ((livePrice - displayBasis) / displayBasis) * 100 : 0
 
       rows.push({
         asset,
         price: livePrice,
         priceValid: true,
-        firstPrice: basis,
+        firstPrice: displayBasis,
         shares,
         metricsReady: true,
         totalInvestment,
@@ -410,9 +438,102 @@ export function Investments() {
       .sort((a, b) => Math.abs(Number(b.realized)) - Math.abs(Number(a.realized)))
   }, [realizedPnl, kind])
 
-  const buyNft = (currency: NftCurrency, names: string[]) => {
-    setOwnedNfts((prev) => ({ ...prev, [currency]: [...prev[currency], ...names.filter((name) => !prev[currency].includes(name))] }))
+  /**
+   * Apply a coin delta for NFT trades without touching realized P&L.
+   * Buy parks coins into NFTs (shares down); sell returns them (shares up).
+   * Cost basis is sticky — same as a reallocation, not a market sell.
+   * When liquid coins hit zero, keep shares as "0" so the position stays on the register.
+   */
+  const applyNftCoinDelta = (
+    asset: InvestmentAsset,
+    deltaCoins: string,
+    direction: 'spend' | 'receive',
+  ): string | null => {
+    const entry = getStoredEntry(entries, asset.kind, asset.id)
+    const heldRaw = entry.shares.trim() ? entry.shares : '0'
+    const heldUnits = parseFixed8(heldRaw) ?? 0n
+    const deltaUnits = parseFixed8(deltaCoins)
+    if (deltaUnits == null || deltaUnits <= 0n) return 'Invalid NFT price.'
+
+    let nextShares: string
+    if (direction === 'spend') {
+      if (deltaUnits > heldUnits) {
+        return `Need ${deltaCoins} ${asset.name}; you hold ${heldRaw || '0'}.`
+      }
+      const next = subtractFixed8(heldRaw, deltaCoins)
+      if (next == null) return 'Could not update coin balance.'
+      const nextUnits = parseFixed8(next) ?? 0n
+      // Keep an explicit zero so the ETH/TRB row (and NFT panel) stay visible.
+      nextShares = nextUnits > 0n ? next : '0'
+    } else {
+      const next = addFixed8(heldRaw, deltaCoins)
+      if (next == null) return 'Could not update coin balance.'
+      nextShares = next
+    }
+
+    const priceStr = entry.price.trim() ? entry.price : ''
+    const basis = resolveFirstPrice(entry)
+    // Sticky basis: NFT move is not a market trade. Open-from-zero sell uses live price if no basis.
+    let costBasis: string | null = basis ?? null
+    if (!costBasis && direction === 'receive' && priceStr) {
+      const live = parseUserNumber(priceStr)
+      if (live != null && live > 0) costBasis = priceStr
+    }
+
+    setEntries((prev) =>
+      upsertEntry(prev, asset.kind, asset.id, priceStr || entry.price, nextShares, {
+        costBasis,
+      }),
+    )
+    setSelectedIds((prev) => ({ ...prev, [asset.kind]: asset.id }))
+    setSelected(asset)
+    if (priceStr) setPriceInput(priceStr)
+    setSharesInput(nextShares)
+    return null
+  }
+
+  /** Buy NFTs: record ownership and subtract their fixed coin prices from liquid holdings. */
+  const buyNft = (currency: NftCurrency, names: string[]): string | null => {
+    const unique = names.filter(
+      (name, i) => names.indexOf(name) === i && !ownedNfts[currency].includes(name),
+    )
+    if (unique.length === 0) return 'Select at least one NFT to buy.'
+    const asset = cryptoAssetForNft(currency)
+    if (!asset) return `${currency} asset not found.`
+
+    const total = nftTotalPrice(currency, unique)
+    if (!(total > 0)) return 'Invalid NFT selection.'
+    const err = applyNftCoinDelta(asset, nftPriceShares(total), 'spend')
+    if (err) return err
+
+    setOwnedNfts((prev) => ({
+      ...prev,
+      [currency]: [...prev[currency], ...unique],
+    }))
     setNftDialog(null)
+    return null
+  }
+
+  /** Sell NFTs: drop ownership and return their fixed coin prices to liquid holdings. */
+  const sellNft = (currency: NftCurrency, names: string[]): string | null => {
+    const unique = names.filter(
+      (name, i) => names.indexOf(name) === i && ownedNfts[currency].includes(name),
+    )
+    if (unique.length === 0) return 'Select at least one owned NFT to sell.'
+    const asset = cryptoAssetForNft(currency)
+    if (!asset) return `${currency} asset not found.`
+
+    const total = nftTotalPrice(currency, unique)
+    if (!(total > 0)) return 'Invalid NFT selection.'
+    const err = applyNftCoinDelta(asset, nftPriceShares(total), 'receive')
+    if (err) return err
+
+    setOwnedNfts((prev) => ({
+      ...prev,
+      [currency]: prev[currency].filter((name) => !unique.includes(name)),
+    }))
+    setNftDialog(null)
+    return null
   }
 
   useEffect(() => {
@@ -1087,13 +1208,16 @@ export function Investments() {
             <div className="nft-register">
               <div className="row">
                 <h4 className="section-title" style={{ margin: 0 }}>NFTs</h4>
-                <span className="results-count spacer">fixed prices · current dollar value</span>
+                <span className="results-count spacer">
+                  fixed prices · buy spends liquid coins · sell returns them
+                </span>
               </div>
               {(['ETH', 'TRB'] as NftCurrency[]).map((currency) => {
                 if (!nftExpanded[currency]) return null
                 const row = ownedRows.find((item) => item.asset.name.toUpperCase() === currency)
                 if (!row) return null
                 const currentPrice = row.priceValid ? row.price : 0
+                const liquid = liquidCoinsFor(currency)
                 const ownedSorted = [...ownedNfts[currency]]
                   .map((name) => nfts[currency].find((n) => n.name === name)!)
                   .filter(Boolean)
@@ -1108,6 +1232,8 @@ export function Investments() {
                             {ownedSorted.length === 0
                               ? 'none owned'
                               : `${ownedSorted.length} owned`}
+                            {' · '}
+                            {liquid.toLocaleString()} liquid {currency}
                           </span>
                           <button
                             type="button"
@@ -1122,13 +1248,14 @@ export function Investments() {
                       </div>
                     </div>
                     {ownedSorted.length === 0 ? (
-                      <p className="nft-empty">No NFTs yet — tap Buy to collect.</p>
+                      <p className="nft-empty">No NFTs yet — tap Trade to buy (spends liquid {currency}).</p>
                     ) : (
                       <>
                         <div className="nft-columns nft-columns-header">
                           <span>NFT</span>
                           <span>{currency}</span>
                           <span>Dollars</span>
+                          <span />
                         </div>
                         <ul>
                           {ownedSorted.map((item) => (
@@ -1136,13 +1263,28 @@ export function Investments() {
                               <span>{item.name}</span>
                               <span>{item.price.toLocaleString()}</span>
                               <span>{currentPrice > 0 ? formatMoney(item.price * currentPrice) : '—'}</span>
+                              <span>
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-sm"
+                                  onClick={() => {
+                                    const err = sellNft(currency, [item.name])
+                                    if (err) setBackupStatus(err)
+                                  }}
+                                  aria-label={`Sell ${item.name}`}
+                                  title={`Sell for ${item.price.toLocaleString()} ${currency}`}
+                                >
+                                  Sell
+                                </button>
+                              </span>
                             </li>
                           ))}
                         </ul>
                         <div className="nft-total nft-columns">
-                          <span>Real {currency} investment</span>
+                          <span>Parked in NFTs</span>
                           <strong>{nftCost(currency).toLocaleString()}</strong>
                           <strong>{currentPrice > 0 ? formatMoney(nftCost(currency) * currentPrice) : '—'}</strong>
+                          <span />
                         </div>
                       </>
                     )}
@@ -1171,7 +1313,15 @@ export function Investments() {
         />
       )}
       {nftDialog && (
-        <NftDialog currency={nftDialog} options={nfts[nftDialog]} owned={ownedNfts[nftDialog]} onBuy={(name) => buyNft(nftDialog, name)} onClose={() => setNftDialog(null)} />
+        <NftDialog
+          currency={nftDialog}
+          options={nfts[nftDialog]}
+          owned={ownedNfts[nftDialog]}
+          availableCoins={liquidCoinsFor(nftDialog)}
+          onBuy={(names) => buyNft(nftDialog, names)}
+          onSell={(names) => sellNft(nftDialog, names)}
+          onClose={() => setNftDialog(null)}
+        />
       )}
 
       <div className="grid-2 invest-layout">

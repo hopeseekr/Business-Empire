@@ -13,6 +13,19 @@ export const nfts: Record<NftCurrency, NftDefinition[]> = {
     ({ name: ['Red moon', 'Ink flowers', '8-bit pods', 'Rat look', 'Doogie'][i], price })),
 }
 
+/** Sum of static NFT prices (in native coin units) for the given names. */
+export function nftTotalPrice(currency: NftCurrency, names: string[]): number {
+  return names.reduce((sum, name) => {
+    const def = nfts[currency].find((n) => n.name === name)
+    return sum + (def?.price ?? 0)
+  }, 0)
+}
+
+/** Format a static integer NFT price as a fixed-point shares string. */
+export function nftPriceShares(price: number): string {
+  return String(price)
+}
+
 const KEY = 'business-empire.investments.nfts.v1'
 export type OwnedNfts = Record<NftCurrency, string[]>
 export function loadOwnedNfts(): OwnedNfts {
