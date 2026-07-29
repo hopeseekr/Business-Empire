@@ -409,8 +409,8 @@ export function Investments() {
       .sort((a, b) => Math.abs(Number(b.realized)) - Math.abs(Number(a.realized)))
   }, [realizedPnl, kind])
 
-  const buyNft = (currency: NftCurrency, name: string) => {
-    setOwnedNfts((prev) => prev[currency].includes(name) ? prev : { ...prev, [currency]: [...prev[currency], name] })
+  const buyNft = (currency: NftCurrency, names: string[]) => {
+    setOwnedNfts((prev) => ({ ...prev, [currency]: [...prev[currency], ...names.filter((name) => !prev[currency].includes(name))] }))
     setNftDialog(null)
   }
 
