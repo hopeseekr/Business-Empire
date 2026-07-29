@@ -1,3 +1,25 @@
+## v1.6.0: NFTs
+
+* **[2026-07-29 14:14:56 EEST]** Record NFTs in portfolio backups
+* **[2026-07-29 14:05:06 EEST]** Show parked NFT dollar value under ETH and TRB when collapsed.
+* **[2026-07-29 13:38:43 EEST]** Make NFT buy/sell move liquid ETH and TRB coin balances.
+* **[2026-07-29 13:30:17 EEST]** Remove localStorage persistence label from Realized P&L toolbar.
+* **[2026-07-29 13:29:41 EEST]** Remove export success status message from Investments page.
+* **[2026-07-29 13:28:03 EEST]** Relabel NFT portfolio header and place Trade next to owned count.
+* **[2026-07-29 13:25:50 EEST]** Keep + NFTs chip blue when the accordion is open.
+* **[2026-07-29 13:24:54 EEST]** Make NFT register an accordion opened by + NFTs.
+* **[2026-07-29 13:22:00 EEST]** Sort owned NFTs by currency price ascending.
+* **[2026-07-29 13:20:56 EEST]** Align NFT table numeric columns with fixed grid tracks.
+* **[2026-07-29 13:18:37 EEST]** Align NFT register values into columns
+* **[2026-07-29 13:16:57 EEST]** Show NFT investments in ETH and dollar columns
+* **[2026-07-29 13:10:44 EEST]** Remove action column from portfolio table
+* **[2026-07-29 13:07:43 EEST]** Remove floating dollar values from NFT purchase dialog
+* **[2026-07-29 13:04:35 EEST]** Style NFT add action as blue button
+* **[2026-07-29 13:03:04 EEST]** Use two-column ETH NFT layout
+* **[2026-07-29 13:02:44 EEST]** Hide empty NFT register behind add buttons
+* **[2026-07-29 13:01:19 EEST]** Redesign NFT purchase dialog as checkbox catalogue
+* **[2026-07-29 12:53:00 EEST]** Added support for tracking ETH and TRB NFTs in the Portfolio.
+
 ## v1.5.0
 
 * **[2026-07-29 14:04:51 EEST]** Show parked NFT mark-to-market under ETH/TRB when the accordion is collapsed.
