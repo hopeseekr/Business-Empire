@@ -268,6 +268,7 @@ export function Investments() {
   const [tradePosition, setTradePosition] = useState<OwnedRow | null>(null)
   const [ownedNfts, setOwnedNfts] = useState<OwnedNfts>(() => loadOwnedNfts())
   const [nftDialog, setNftDialog] = useState<NftCurrency | null>(null)
+  const [nftExpanded, setNftExpanded] = useState<Partial<Record<NftCurrency, boolean>>>({})
   const [realizedPnl, setRealizedPnl] = useState<RealizedPnlState>(() => loadRealizedPnl())
   const [backupStatus, setBackupStatus] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -1026,11 +1027,24 @@ export function Investments() {
                     >
                       <td className="collection-name">
                         {row.asset.name}
-                        {kind === 'crypto' && (row.asset.name.toUpperCase() === 'ETH' || row.asset.name.toUpperCase() === 'TRB') && (
-                          <button type="button" className="btn btn-ghost btn-sm nft-inline-btn" onClick={(e) => { e.stopPropagation(); setNftDialog(row.asset.name.toUpperCase() as NftCurrency) }}>
-                            + NFTs
-                          </button>
-                        )}
+                        {kind === 'crypto' && (row.asset.name.toUpperCase() === 'ETH' || row.asset.name.toUpperCase() === 'TRB') && (() => {
+                          const currency = row.asset.name.toUpperCase() as NftCurrency
+                          const isOpen = !!nftExpanded[currency]
+                          return (
+                            <button
+                              type="button"
+                              className={`btn btn-ghost btn-sm nft-inline-btn${isOpen ? ' open' : ''}`}
+                              aria-expanded={isOpen}
+                              aria-controls={`nft-panel-${currency}`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setNftExpanded((prev) => ({ ...prev, [currency]: !prev[currency] }))
+                              }}
+                            >
+                              {isOpen ? '− NFTs' : '+ NFTs'}
+                            </button>
+                          )
+                        })()}
                       </td>
                       <td className="num-cell">
                         {row.priceValid ? formatMoney(row.price) : '—'}
@@ -1071,10 +1085,14 @@ export function Investments() {
               </tbody>
             </table>
           </div>
-          {kind === 'crypto' && Object.values(ownedNfts).some((items) => items.length > 0) && ownedRows.some((row) => row.asset.name.toUpperCase() === 'ETH' || row.asset.name.toUpperCase() === 'TRB') && (
+          {kind === 'crypto' && (['ETH', 'TRB'] as NftCurrency[]).some((currency) => nftExpanded[currency] && ownedRows.some((row) => row.asset.name.toUpperCase() === currency)) && (
             <div className="nft-register">
-              <div className="row"><h4 className="section-title" style={{ margin: 0 }}>NFTs</h4><span className="results-count spacer">fixed prices · current dollar value</span></div>
+              <div className="row">
+                <h4 className="section-title" style={{ margin: 0 }}>NFTs</h4>
+                <span className="results-count spacer">fixed prices · current dollar value</span>
+              </div>
               {(['ETH', 'TRB'] as NftCurrency[]).map((currency) => {
+                if (!nftExpanded[currency]) return null
                 const row = ownedRows.find((item) => item.asset.name.toUpperCase() === currency)
                 if (!row) return null
                 const currentPrice = row.priceValid ? row.price : 0
@@ -1083,26 +1101,51 @@ export function Investments() {
                   .filter(Boolean)
                   .sort((a, b) => a.price - b.price)
                 return (
-                  <div className="nft-group" key={currency}>
-                    <div className="nft-columns nft-columns-header">
-                      <span>NFT</span>
-                      <span>{currency}</span>
-                      <span>Dollars</span>
+                  <div className="nft-group nft-group-open" key={currency} id={`nft-panel-${currency}`}>
+                    <div className="nft-group-top">
+                      <div className="nft-group-heading">
+                        <strong>{currency} portfolio</strong>
+                        <span className="results-count">
+                          {ownedSorted.length === 0
+                            ? 'none owned'
+                            : `${ownedSorted.length} owned`}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="nft-buy-round"
+                        onClick={() => setNftDialog(currency)}
+                        aria-label={`Buy ${currency} NFT`}
+                        title={`Buy ${currency} NFT`}
+                      >
+                        Buy
+                      </button>
                     </div>
-                    <ul>
-                      {ownedSorted.map((item) => (
-                        <li key={item.name}>
-                          <span>{item.name}</span>
-                          <span>{item.price.toLocaleString()}</span>
-                          <span>{currentPrice > 0 ? formatMoney(item.price * currentPrice) : '—'}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="nft-total nft-columns">
-                      <span>Real {currency} investment</span>
-                      <strong>{nftCost(currency).toLocaleString()}</strong>
-                      <strong>{currentPrice > 0 ? formatMoney(nftCost(currency) * currentPrice) : '—'}</strong>
-                    </div>
+                    {ownedSorted.length === 0 ? (
+                      <p className="nft-empty">No NFTs yet — tap Buy to collect.</p>
+                    ) : (
+                      <>
+                        <div className="nft-columns nft-columns-header">
+                          <span>NFT</span>
+                          <span>{currency}</span>
+                          <span>Dollars</span>
+                        </div>
+                        <ul>
+                          {ownedSorted.map((item) => (
+                            <li key={item.name}>
+                              <span>{item.name}</span>
+                              <span>{item.price.toLocaleString()}</span>
+                              <span>{currentPrice > 0 ? formatMoney(item.price * currentPrice) : '—'}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="nft-total nft-columns">
+                          <span>Real {currency} investment</span>
+                          <strong>{nftCost(currency).toLocaleString()}</strong>
+                          <strong>{currentPrice > 0 ? formatMoney(nftCost(currency) * currentPrice) : '—'}</strong>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )
               })}
