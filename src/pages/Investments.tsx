@@ -1135,7 +1135,7 @@ export function Investments() {
         />
       )}
       {nftDialog && (
-        <NftDialog currency={nftDialog} options={nfts[nftDialog]} owned={ownedNfts[nftDialog]} cryptoPrice={ownedRows.find((row) => row.asset.name.toUpperCase() === nftDialog)?.price ?? 0} onBuy={(name) => buyNft(nftDialog, name)} onClose={() => setNftDialog(null)} />
+        <NftDialog currency={nftDialog} options={nfts[nftDialog]} owned={ownedNfts[nftDialog]} onBuy={(name) => buyNft(nftDialog, name)} onClose={() => setNftDialog(null)} />
       )}
 
       <div className="grid-2 invest-layout">
