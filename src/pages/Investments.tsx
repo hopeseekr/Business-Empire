@@ -84,12 +84,6 @@ function kindShort(kind: InvestmentKind): string {
   return 'Bullion'
 }
 
-function kindOwnedLabel(kind: InvestmentKind): string {
-  if (kind === 'stock') return 'stocks'
-  if (kind === 'crypto') return 'crypto'
-  return 'bullion'
-}
-
 function assetsCount(kind: InvestmentKind): number {
   return assetsFor(kind).length
 }
@@ -1100,7 +1094,7 @@ export function Investments() {
         <section className="card owned-assets" aria-label="Owned assets">
           <div className="row owned-assets-header">
             <h3 className="section-title" style={{ margin: 0 }}>
-              Owned {kindOwnedLabel(kind)}
+              Portfolio
             </h3>
             <span className="results-count spacer">{ownedRows.length}</span>
           </div>

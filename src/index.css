@@ -1452,8 +1452,8 @@ button.verdict-banner-clickable:focus-visible {
 }
 
 .owned-assets-wrap {
-  max-height: 9.5rem;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: visible;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
 }
