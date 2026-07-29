@@ -1031,7 +1031,14 @@ export function Investments() {
                       onClick={() => selectAsset(row.asset)}
                       title={`${shareLabel} · cost basis ${formatMoney(row.firstPrice)} · click to edit`}
                     >
-                      <td className="collection-name">{row.asset.name}</td>
+                      <td className="collection-name">
+                        {row.asset.name}
+                        {kind === 'crypto' && (row.asset.name.toUpperCase() === 'ETH' || row.asset.name.toUpperCase() === 'TRB') && (
+                          <button type="button" className="btn btn-ghost btn-sm nft-inline-btn" onClick={(e) => { e.stopPropagation(); setNftDialog(row.asset.name.toUpperCase() as NftCurrency) }}>
+                            + NFTs
+                          </button>
+                        )}
+                      </td>
                       <td className="num-cell">
                         {row.priceValid ? formatMoney(row.price) : '—'}
                       </td>
@@ -1097,14 +1104,14 @@ export function Investments() {
               </tbody>
             </table>
           </div>
-          {kind === 'crypto' && ownedRows.some((row) => row.asset.name.toUpperCase() === 'ETH' || row.asset.name.toUpperCase() === 'TRB') && (
+          {kind === 'crypto' && Object.values(ownedNfts).some((items) => items.length > 0) && ownedRows.some((row) => row.asset.name.toUpperCase() === 'ETH' || row.asset.name.toUpperCase() === 'TRB') && (
             <div className="nft-register">
               <div className="row"><h4 className="section-title" style={{ margin: 0 }}>NFTs</h4><span className="results-count spacer">fixed prices · live floating values</span></div>
               {(['ETH', 'TRB'] as NftCurrency[]).map((currency) => {
                 const row = ownedRows.find((item) => item.asset.name.toUpperCase() === currency)
                 if (!row) return null
                 const floating = row.priceValid ? row.price : 0
-                return <div className="nft-group" key={currency}><div className="row"><strong>{currency}</strong><button type="button" className="btn btn-ghost btn-sm spacer" onClick={() => setNftDialog(currency)}>Buy NFT</button></div><ul>{ownedNfts[currency].map((name) => { const item = nfts[currency].find((n) => n.name === name)!; return <li key={name}><span>{name}</span><span>{item.price.toLocaleString()} {currency} · {floating > 0 ? formatMoney(item.price * floating) : '—'} floating</span></li> })}</ul><div className="nft-total"><span>Real {currency} investment</span><strong>{nftCost(currency).toLocaleString()} {currency}</strong></div></div>
+                return <div className="nft-group" key={currency}><div className="row"><strong>{currency}</strong><button type="button" className="btn btn-ghost btn-sm spacer" onClick={() => setNftDialog(currency)}>+ NFTs</button></div><ul>{ownedNfts[currency].map((name) => { const item = nfts[currency].find((n) => n.name === name)!; return <li key={name}><span>{name}</span><span>{item.price.toLocaleString()} {currency} · {floating > 0 ? formatMoney(item.price * floating) : '—'} floating</span></li> })}</ul><div className="nft-total"><span>Real {currency} investment</span><strong>{nftCost(currency).toLocaleString()} {currency}</strong></div></div>
               })}
             </div>
           )}
