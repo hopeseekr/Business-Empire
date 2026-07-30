@@ -51,6 +51,8 @@ function isEntry(value: unknown): value is StoredAssetEntry {
   const v = value as Record<string, unknown>
   if (typeof v.price !== 'string' || typeof v.shares !== 'string') return false
   if (v.firstPrice !== undefined && typeof v.firstPrice !== 'string') return false
+  if (v.relativeCostBasis !== undefined && typeof v.relativeCostBasis !== 'string') return false
+  if (v.roundRealized !== undefined && typeof v.roundRealized !== 'string') return false
   return true
 }
 

@@ -1,5 +1,6 @@
 import type { InvestmentAsset, InvestmentKind } from '../types'
 import { assetsFor, parseUserNumber } from './investments'
+import { formatFixed8, multiplyFixed8, parseFixed8 } from './fixedPoint'
 
 /** Legacy monolithic blob (migrated away on first load). */
 const LEGACY_STORAGE_KEY = 'business-empire.investments.v1'
@@ -23,6 +24,18 @@ export interface StoredAssetEntry {
    * unchanged on partial sell, cleared on full exit).
    */
   firstPrice?: string
+  /**
+   * Signed lifetime cash ledger for the open position, in total dollars:
+   * cumulative purchase costs minus every sale proceed. Goes negative once more
+   * has been taken out than was put in. Cleared on liquidation.
+   */
+  relativeCostBasis?: string
+  /**
+   * Profit already booked to the trader log while this position has been open.
+   * Scoped to the current round so Net P&L resets on liquidation; the trader log
+   * itself keeps the cumulative history. Cleared on liquidation.
+   */
+  roundRealized?: string
 }
 
 export interface InvestmentMeta {
@@ -90,6 +103,8 @@ function isEntry(value: unknown): value is StoredAssetEntry {
   const v = value as Record<string, unknown>
   if (typeof v.price !== 'string' || typeof v.shares !== 'string') return false
   if (v.firstPrice !== undefined && typeof v.firstPrice !== 'string') return false
+  if (v.relativeCostBasis !== undefined && typeof v.relativeCostBasis !== 'string') return false
+  if (v.roundRealized !== undefined && typeof v.roundRealized !== 'string') return false
   return true
 }
 
@@ -121,6 +136,38 @@ export function resolveFirstPrice(entry: StoredAssetEntry): string | undefined {
   const live = canonicalPriceString(entry.price)
   if (live) return live
   return undefined
+}
+
+/**
+ * Complete signed amount suitable for the relative ledger.
+ * Unlike a price, zero and negative are meaningful values, not corrupt input.
+ */
+function canonicalSignedAmount(raw: string | undefined): string | undefined {
+  if (raw == null) return undefined
+  let t = raw.trim()
+  if (!t) return undefined
+  if (t.endsWith('.')) t = t.replace(/\.+$/, '')
+  const units = parseFixed8(t)
+  return units == null ? undefined : formatFixed8(units)
+}
+
+/**
+ * Total dollars of capital tied to the open position (purchases minus proceeds).
+ * Positions that predate the ledger fall back to conventional average cost, so an
+ * existing holding starts out reporting Net P&L equal to its unrealized gain.
+ */
+export function resolveRelativeCostBasis(entry: StoredAssetEntry): string {
+  const explicit = canonicalSignedAmount(entry.relativeCostBasis)
+  if (explicit != null) return explicit
+  const basis = resolveFirstPrice(entry)
+  const shares = canonicalSignedAmount(entry.shares)
+  if (!basis || shares == null) return '0'
+  return multiplyFixed8(basis, shares) ?? '0'
+}
+
+/** Profit banked from this position since it was opened (0 before the ledger existed). */
+export function resolveRoundRealized(entry: StoredAssetEntry): string {
+  return canonicalSignedAmount(entry.roundRealized) ?? '0'
 }
 
 /**
@@ -171,10 +218,14 @@ export function averageCostAfterSell(
 /** Normalize a stored entry (repair dangling-decimal firstPrice; never invent from keystrokes). */
 export function sanitizeStoredEntry(value: StoredAssetEntry): StoredAssetEntry {
   const basis = resolveFirstPrice(value)
+  const relative = canonicalSignedAmount(value.relativeCostBasis)
+  const banked = canonicalSignedAmount(value.roundRealized)
   return {
     price: value.price,
     shares: value.shares,
     ...(basis ? { firstPrice: basis } : {}),
+    ...(relative != null ? { relativeCostBasis: relative } : {}),
+    ...(banked != null ? { roundRealized: banked } : {}),
   }
 }
 
@@ -429,6 +480,14 @@ export interface UpsertEntryOptions {
    * When set, wins over establishBasis and the previous firstPrice.
    */
   costBasis?: string | null
+  /**
+   * Explicit signed relative cost basis in total dollars.
+   * - string: set the ledger (buy adds cost, sell subtracts proceeds)
+   * - null: clear the ledger (liquidation)
+   */
+  relativeCostBasis?: string | null
+  /** Round-scoped booked profit; null clears it on liquidation. */
+  roundRealized?: string | null
 }
 
 /**
@@ -440,6 +499,10 @@ export interface UpsertEntryOptions {
  * - Otherwise basis is sticky: not overwritten by live price edits, and not dropped
  *   when price is cleared/zeroed.
  * - `establishBasis` only locks from live price when missing / keystroke-corrupt.
+ *
+ * Relative ledger rules: trade and NFT paths pass explicit values; every other
+ * path (price keystrokes, blur, total-invested edits) carries the ledger forward
+ * untouched, since none of them moves cash in or out of the position.
  */
 export function upsertEntry(
   entries: Record<string, StoredAssetEntry>,
@@ -460,6 +523,24 @@ export function upsertEntry(
   const prev = entries[key]
   const priceForBasis = canonicalPriceString(price)
 
+  // Explicit ledger value wins; absent means "leave the ledger alone".
+  const relative =
+    options && 'relativeCostBasis' in options && options.relativeCostBasis !== undefined
+      ? options.relativeCostBasis === null
+        ? undefined
+        : canonicalSignedAmount(options.relativeCostBasis)
+      : canonicalSignedAmount(prev?.relativeCostBasis)
+  const banked =
+    options && 'roundRealized' in options && options.roundRealized !== undefined
+      ? options.roundRealized === null
+        ? undefined
+        : canonicalSignedAmount(options.roundRealized)
+      : canonicalSignedAmount(prev?.roundRealized)
+  const ledger = {
+    ...(relative != null ? { relativeCostBasis: relative } : {}),
+    ...(banked != null ? { roundRealized: banked } : {}),
+  }
+
   // Explicit trade basis always wins (including clear on full exit).
   if (options && 'costBasis' in options && options.costBasis !== undefined) {
     const tradeBasis =
@@ -470,6 +551,7 @@ export function upsertEntry(
         price,
         shares,
         ...(tradeBasis ? { firstPrice: tradeBasis } : {}),
+        ...ledger,
       },
     }
   }
@@ -508,6 +590,7 @@ export function upsertEntry(
       price,
       shares,
       ...(firstPrice ? { firstPrice } : {}),
+      ...ledger,
     },
   }
 }

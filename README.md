@@ -16,6 +16,14 @@ Live site: <https://ai.autonomo.codes/business-empire/>
 
 The Investments screen covers 50 stocks, 13 crypto assets, and 3 bullion assets. Enter a current price and (optionally) units held to see the historical range, potential remaining to the recorded maximum, and a trade helper. BUY/SELL actions open the trade dialog, which updates your local position, average cost, and realized P&L.
 
+**How the Portfolio table reports a position.** Selling pays you back out of profit first, and only money beyond that profit counts as getting your capital back:
+
+- **Rel. Cost Basis** is what each unit still costs you: everything you have put into the position minus every dollar you have taken back out, spread over the units you still hold. Sell into a gain and it falls; sell at a loss and it rises, because the same capital now rides on fewer units.
+- **Net P&L** is the profit you have *not* yet banked — market value minus the relative basis minus what this position has already paid you. Harvest a gain and it drops to zero: nothing is lost, the profit simply moved into Realized.
+- **Realized** is the lifetime trader log. Cashing out while ahead books the gain; a sale that only returns capital books nothing; and closing a position for less than it cost books the shortfall as a loss.
+
+Selling out completely resets Rel. Cost Basis and Net P&L, so buying back in starts from a clean slate. Realized keeps the full history. The trade dialog still reports conventional **average cost basis** and **Unrealized** alongside it.
+
 **Bulk Screening** lets you enter prices for the whole list in one keyboard pass (Enter/Tab advances). It shows distance from the recorded minimum, potential to maximum, and a sortable BUY/HOLD/SELL table; stocks start sorted by yield.
 
 The heuristic is exactly: **price below the historical average → BUY; price at or above the average while you hold units → SELL; price at or above the average with no position → HOLD**. “Potential” is `(historical max − current price) / current price`; “From min” is `(current price − historical min) / historical min`. These are comparisons to the app’s historical range, not forecasts or financial advice, and you should verify prices and make your own decisions.

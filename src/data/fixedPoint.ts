@@ -85,15 +85,72 @@ export function weightedAverageCost(
   return formatFixed8(roundedDivide(held * basis + bought * price, totalShares))
 }
 
-/** Realized P&L for a sell lot, represented at exact eight-decimal precision. */
-export function realizedSellPnl(
+export interface SaleAllocation {
+  /** Profit booked by this sale (negative only when a full exit closes a loss). */
+  realized: string
+  /** Relative cost basis after the sale; null when the position is liquidated. */
+  relativeCostBasis: string | null
+  /** Round-scoped realized profit after the sale; null when liquidated. */
+  roundRealized: string | null
+}
+
+/**
+ * Allocate sale proceeds to the position's available profit first.
+ *
+ * Available profit is the position's whole unbooked gain at the sale price —
+ * market value minus the relative cost basis minus profit already banked this
+ * round — which is exactly the Net P&L the Portfolio reports. Proceeds are
+ * credited to that profit up to its full amount; anything beyond it is a return
+ * of capital and books no gain. Selling while there is no profit available
+ * realizes nothing and leaves Net P&L untouched: the relative basis simply
+ * spreads over fewer units, so per-unit cost rises.
+ *
+ * A full exit has no position left to carry an unrecovered loss, so it closes
+ * one into the trader log; the caller then resets the ledger (null fields).
+ */
+export function allocateSaleProceeds(
   sellPrice: string,
-  costBasis: string,
-  sharesSold: string,
-): string | null {
-  const sell = parseFixed8(sellPrice)
-  const basis = parseFixed8(costBasis)
-  const shares = parseFixed8(sharesSold)
-  if (sell == null || basis == null || shares == null || sell <= 0n || basis <= 0n || shares <= 0n) return null
-  return formatFixed8(roundedDivide((sell - basis) * shares, FIXED_SCALE))
+  heldShares: string,
+  soldShares: string,
+  relativeCostBasis: string,
+  roundRealized: string,
+  exactProceeds?: string,
+): SaleAllocation | null {
+  const price = parseFixed8(sellPrice)
+  const held = parseFixed8(heldShares)
+  const sold = parseFixed8(soldShares)
+  const relative = parseFixed8(relativeCostBasis) ?? 0n
+  const banked = parseFixed8(roundRealized) ?? 0n
+  if (price == null || held == null || sold == null) return null
+  if (price <= 0n || held <= 0n || sold <= 0n || sold > held) return null
+
+  // Dollar-mode sells carry the exact amount entered, so the ledger stays exact
+  // instead of drifting through a shares round-trip.
+  const exact = exactProceeds != null ? parseFixed8(exactProceeds) : null
+  const proceeds = exact != null && exact > 0n ? exact : roundedDivide(price * sold, FIXED_SCALE)
+
+  const marketValue = roundedDivide(price * held, FIXED_SCALE)
+  const available = marketValue - relative - banked
+  const fullExit = sold === held
+
+  // A unit count only resolves to eight decimals, so pricing a holding can land a
+  // sliver off the exact ledger. Anything under a cent is that rounding noise
+  // rather than money, and must never reach the trader log as a phantom lot.
+  const MATERIAL = FIXED_SCALE / 100n
+
+  let realized = 0n
+  if (available > MATERIAL) {
+    realized = proceeds < available ? proceeds : available
+  } else if (fullExit && available < -MATERIAL) {
+    realized = available
+  }
+
+  if (fullExit) {
+    return { realized: formatFixed8(realized), relativeCostBasis: null, roundRealized: null }
+  }
+  return {
+    realized: formatFixed8(realized),
+    relativeCostBasis: formatFixed8(relative - proceeds),
+    roundRealized: formatFixed8(banked + realized),
+  }
 }

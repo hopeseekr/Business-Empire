@@ -96,7 +96,8 @@ export function TradeDialog({
   sessionRealized?: number
   onClose: () => void
   onBuy: (shares: string) => void
-  onSell: (shares: string) => void
+  /** Dollar-mode sales pass the exact amount entered so the ledger stays exact. */
+  onSell: (shares: string, proceeds?: string) => void
   onPriceChange: (value: string) => void
   onTotalInvestedChange: (value: string) => void
   onPriceBlur?: () => void
@@ -250,7 +251,7 @@ export function TradeDialog({
 
   const confirmDollarSell = () => {
     if (pendingSellShares == null || (parseFixed8(pendingSellShares) ?? 0n) <= 0n) return
-    onSell(pendingSellShares)
+    onSell(pendingSellShares, amount)
   }
 
   return (

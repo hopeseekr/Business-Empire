@@ -28,13 +28,24 @@ import {
   getStoredEntry,
   loadInvestmentPrefs,
   resolveFirstPrice,
+  resolveRelativeCostBasis,
+  resolveRoundRealized,
   resolveStoredAsset,
   saveInvestmentPrefs,
   upsertEntry,
   type InvestmentPrefs,
   type StoredAssetEntry,
 } from '../data/investmentStorage'
-import { addFixed8, formatFixed8, parseFixed8, subtractFixed8, weightedAverageCost } from '../data/fixedPoint'
+import {
+  addFixed8,
+  allocateSaleProceeds,
+  divideFixed8,
+  formatFixed8,
+  multiplyFixed8,
+  parseFixed8,
+  subtractFixed8,
+  weightedAverageCost,
+} from '../data/fixedPoint'
 import {
   downloadPortfolioBackup,
   parsePortfolioBackup,
@@ -45,7 +56,7 @@ import {
   formatSignedMoney,
   getAssetRealized,
   loadRealizedPnl,
-  recordRealizedSell,
+  recordRealizedDelta,
   saveRealizedPnl,
   type RealizedPnlState,
 } from '../data/realizedPnlStorage'
@@ -62,6 +73,12 @@ interface OwnedRow {
   /** True when metrics used a real live price + shares (not placeholders). */
   metricsReady: boolean
   totalInvestment: number
+  /** Per-unit share of the relative ledger; 0 once the position is liquidated. */
+  relativeCostBasis: number
+  /** Unbooked gain: market value − relative basis − profit banked this round. */
+  netPnl: number
+  /** Null when there is no positive relative basis to measure against. */
+  netPnlPct: number | null
   gainLoss: number
   gainLossPct: number
   action: TradeAction
@@ -98,6 +115,16 @@ function formatCompactCount(value: number): string {
 
 function assetsCount(kind: InvestmentKind): number {
   return assetsFor(kind).length
+}
+
+/**
+ * Net P&L prices a unit count that only resolves to eight decimals against an exact
+ * dollar ledger, so a fully harvested position can settle a fraction of a cent off
+ * zero. Sub-cent amounts are not money — snap them so a flat position reads $0.00
+ * instead of a red -$0.000000.
+ */
+function snapToCent(value: number): number {
+  return Math.abs(value) < 0.005 ? 0 : value
 }
 
 function actionMeta(
@@ -365,6 +392,11 @@ export function Investments() {
       const metricsReady = priceValid && sharesHeld
       const livePrice = priceValid ? priceVal! : 0
 
+      // Liquidating a position resets its ledger, so a zeroed row reports nothing.
+      const relativeTotal = sharesHeld ? Number(resolveRelativeCostBasis(entry)) : 0
+      const bankedThisRound = sharesHeld ? Number(resolveRoundRealized(entry)) : 0
+      const relativeCostBasis = sharesHeld ? relativeTotal / shares : 0
+
       if (!metricsReady) {
         rows.push({
           asset,
@@ -375,6 +407,9 @@ export function Investments() {
           metricsReady: false,
           // Rank by cost basis capital so the row does not jump while editing price.
           totalInvestment: sharesHeld ? displayBasis * shares : 0,
+          relativeCostBasis,
+          netPnl: 0,
+          netPnlPct: null,
           gainLoss: 0,
           gainLossPct: 0,
           action: 'HOLD',
@@ -388,6 +423,8 @@ export function Investments() {
       const analysis = analyzeTrade(asset, livePrice, shares)
       // Mark-to-market liquid bag only — NFT buy already reduced `shares`.
       const totalInvestment = livePrice * shares
+      const netPnl = snapToCent(totalInvestment - relativeTotal - bankedThisRound)
+      const netPnlPct = relativeTotal > 0 ? (netPnl / relativeTotal) * 100 : null
       const gainLoss = (livePrice - displayBasis) * shares
       const gainLossPct = displayBasis > 0 ? ((livePrice - displayBasis) / displayBasis) * 100 : 0
 
@@ -399,6 +436,9 @@ export function Investments() {
         shares,
         metricsReady: true,
         totalInvestment,
+        relativeCostBasis,
+        netPnl,
+        netPnlPct,
         gainLoss,
         gainLossPct,
         action: analysis.action,
@@ -482,9 +522,26 @@ export function Investments() {
       if (live != null && live > 0) costBasis = priceStr
     }
 
+    // The relative ledger is sticky per coin for the same reason cost basis is: parking
+    // coins in an NFT moves capital sideways, it does not take cash out. Scaling the
+    // signed totals by the new coin count holds per-coin values steady, which keeps Net
+    // P&L tracking only the liquid bag. Zeroing out the bag resets the ledger, so coins
+    // returned by a later NFT sale re-seed from the surviving cost basis.
+    const nextUnits = parseFixed8(nextShares) ?? 0n
+    let nextRelative: string | null = null
+    let nextBanked: string | null = null
+    if (nextUnits > 0n && heldUnits > 0n) {
+      const perCoin = divideFixed8(resolveRelativeCostBasis(entry), heldRaw)
+      const bankedPerCoin = divideFixed8(resolveRoundRealized(entry), heldRaw)
+      nextRelative = perCoin ? multiplyFixed8(perCoin, nextShares) : null
+      nextBanked = bankedPerCoin ? multiplyFixed8(bankedPerCoin, nextShares) : null
+    }
+
     setEntries((prev) =>
       upsertEntry(prev, asset.kind, asset.id, priceStr || entry.price, nextShares, {
         costBasis,
+        relativeCostBasis: nextRelative,
+        roundRealized: nextBanked,
       }),
     )
     setSelectedIds((prev) => ({ ...prev, [asset.kind]: asset.id }))
@@ -620,11 +677,18 @@ export function Investments() {
           priceValid: false,
           metricsReady: false,
           totalInvestment: held > 0 && basis > 0 ? basis * held : 0,
+          netPnl: 0,
+          netPnlPct: null,
           gainLoss: 0,
           gainLossPct: 0,
           action: 'HOLD',
         }
       }
+      // Editing price never moves cash, so the ledger stays put — only the
+      // market-value side of Net P&L re-prices.
+      const relativeTotal = prev.relativeCostBasis * held
+      const banked = held > 0 ? Number(resolveRoundRealized(entry)) : 0
+      const netPnl = held > 0 ? snapToCent(priceVal * held - relativeTotal - banked) : 0
       const analysis = analyzeTrade(asset, priceVal, held > 0 ? held : null)
       return {
         ...prev,
@@ -632,6 +696,8 @@ export function Investments() {
         priceValid: true,
         metricsReady: held > 0,
         totalInvestment: held > 0 ? priceVal * held : 0,
+        netPnl,
+        netPnlPct: relativeTotal > 0 ? (netPnl / relativeTotal) * 100 : null,
         gainLoss: held > 0 ? (priceVal - basis) * held : 0,
         gainLossPct:
           held > 0 && basis > 0 ? ((priceVal - basis) / basis) * 100 : 0,
@@ -641,16 +707,18 @@ export function Investments() {
   }
 
   /**
-   * Apply a buy/sell to storage with explicit average-cost basis.
-   * - Buy: weighted average of prior cost and this fill
-   * - Partial sell: per-share basis unchanged
-   * - Full exit: clear basis (next open starts fresh)
+   * Apply a buy/sell to storage with explicit average-cost basis and relative ledger.
+   * - Buy: weighted average of prior cost and this fill; ledger grows by the cost
+   * - Partial sell: per-share basis unchanged; ledger shrinks by the proceeds
+   * - Full exit: clear basis and reset the ledger (next open starts fresh)
    */
   const applyShareDelta = (
     asset: InvestmentAsset,
     price: string,
     nextShares: string,
     costBasis: string | null,
+    relativeCostBasis: string | null,
+    roundRealized: string | null,
   ) => {
     const priceStr = price
     const sharesUnits = parseFixed8(nextShares)
@@ -660,7 +728,11 @@ export function Investments() {
         ? { costBasis }
         : { costBasis: null as string | null }
     setEntries((prev) =>
-      upsertEntry(prev, asset.kind, asset.id, priceStr, sharesStr, basisOpt),
+      upsertEntry(prev, asset.kind, asset.id, priceStr, sharesStr, {
+        ...basisOpt,
+        relativeCostBasis,
+        roundRealized,
+      }),
     )
     setSelectedIds((prev) => ({ ...prev, [asset.kind]: asset.id }))
     setSelected(asset)
@@ -670,39 +742,62 @@ export function Investments() {
 
   const handleTradeBuy = (sharesToBuy: string) => {
     if (!tradePosition || parseFixed8(sharesToBuy) == null || parseFixed8(sharesToBuy)! <= 0n) return
+    const { asset } = tradePosition
     const held = tradePosition.sharesText
     const buyPrice = priceInput
     const next = addFixed8(held, sharesToBuy)
     const newBasis = weightedAverageCost(held, tradePosition.firstPriceText, sharesToBuy, buyPrice)
     if (!next || !newBasis) return
-    applyShareDelta(tradePosition.asset, buyPrice, next, newBasis)
+
+    // Cash in: the ledger grows by what this fill cost. Banked profit is untouched,
+    // so buying more never manufactures or erases profit.
+    const entry = getStoredEntry(entries, asset.kind, asset.id)
+    const cost = multiplyFixed8(buyPrice, sharesToBuy)
+    const nextRelative = cost ? addFixed8(resolveRelativeCostBasis(entry), cost) : null
+    if (!nextRelative) return
+
+    applyShareDelta(asset, buyPrice, next, newBasis, nextRelative, resolveRoundRealized(entry))
     setTradePosition(null)
   }
 
-  const handleTradeSell = (sharesToSell: string) => {
+  /**
+   * Sell into the profit-first ledger. `enteredProceeds` is the exact dollar amount
+   * a dollar-mode sale asked for; share-mode sales derive it from price × units.
+   */
+  const handleTradeSell = (sharesToSell: string, enteredProceeds?: string) => {
     if (!tradePosition || parseFixed8(sharesToSell) == null || parseFixed8(sharesToSell)! <= 0n) return
+    const { asset } = tradePosition
     const soldUnits = parseFixed8(sharesToSell)!
     const heldUnits = parseFixed8(tradePosition.sharesText)
     if (heldUnits == null || soldUnits > heldUnits) return
     const sold = formatFixed8(soldUnits)
     const basisPerShare = tradePosition.firstPriceText
 
+    const entry = getStoredEntry(entries, asset.kind, asset.id)
+    const allocation = allocateSaleProceeds(
+      priceInput,
+      tradePosition.sharesText,
+      sold,
+      resolveRelativeCostBasis(entry),
+      resolveRoundRealized(entry),
+      enteredProceeds,
+    )
+    const next = subtractFixed8(tradePosition.sharesText, sold)
+    if (!allocation || !next) return
+
     setRealizedPnl((prev) =>
-      recordRealizedSell(
-        prev,
-        tradePosition.asset.kind,
-        tradePosition.asset.id,
-        tradePosition.asset.name,
-        priceInput,
-        basisPerShare,
-        sold,
-      ),
+      recordRealizedDelta(prev, asset.kind, asset.id, asset.name, allocation.realized),
     )
 
-    const next = subtractFixed8(tradePosition.sharesText, sold)
-    if (!next) return
     const remainingBasis = soldUnits === heldUnits ? null : basisPerShare
-    applyShareDelta(tradePosition.asset, priceInput, next, remainingBasis)
+    applyShareDelta(
+      asset,
+      priceInput,
+      next,
+      remainingBasis,
+      allocation.relativeCostBasis,
+      allocation.roundRealized,
+    )
     setTradePosition(null)
   }
 
@@ -720,6 +815,10 @@ export function Investments() {
     const firstPriceVal =
       firstParsed != null && firstParsed > 0 ? firstParsed : priceVal
 
+    const relativeTotal = held > 0 ? Number(resolveRelativeCostBasis(entry)) : 0
+    const bankedThisRound = held > 0 ? Number(resolveRoundRealized(entry)) : 0
+    const netPnl = held > 0 ? snapToCent(priceVal * held - relativeTotal - bankedThisRound) : 0
+
     const live = analyzeTrade(selected, priceVal, held > 0 ? held : null)
     setTradePosition({
       asset: selected,
@@ -729,6 +828,9 @@ export function Investments() {
       shares: held,
       metricsReady: held > 0,
       totalInvestment: held > 0 ? priceVal * held : 0,
+      relativeCostBasis: held > 0 ? relativeTotal / held : 0,
+      netPnl,
+      netPnlPct: relativeTotal > 0 ? (netPnl / relativeTotal) * 100 : null,
       gainLoss: held > 0 ? (priceVal - firstPriceVal) * held : 0,
       gainLossPct:
         held > 0 && firstPriceVal > 0
@@ -1105,9 +1207,9 @@ export function Investments() {
               <thead>
                 <tr>
                   <th scope="col">Asset</th>
-                  <th scope="col">Last price</th>
+                  <th scope="col">Rel. Cost Basis</th>
                   <th scope="col">Total inv.</th>
-                  <th scope="col">Unrealized</th>
+                  <th scope="col">Net P&amp;L</th>
                   <th scope="col">Realized</th>
                 </tr>
               </thead>
@@ -1115,8 +1217,8 @@ export function Investments() {
                 {ownedRows.map((row) => {
                   const isSelected =
                     selected?.kind === row.asset.kind && selected.id === row.asset.id
-                  const gainPositive = row.gainLoss > 0
-                  const gainNegative = row.gainLoss < 0
+                  const gainPositive = row.netPnl > 0
+                  const gainNegative = row.netPnl < 0
                   const gainClass = row.metricsReady
                     ? gainPositive
                       ? 'pot-up'
@@ -1139,7 +1241,9 @@ export function Investments() {
                       className={isSelected ? 'selected' : undefined}
                       style={{ cursor: 'pointer' }}
                       onClick={() => selectAsset(row.asset)}
-                      title={`${shareLabel} · cost basis ${formatMoney(row.firstPrice)} · click to edit`}
+                      title={`${shareLabel} · last price ${
+                        row.priceValid ? formatMoney(row.price) : '—'
+                      } · avg cost basis ${formatMoney(row.firstPrice)} · click to edit`}
                     >
                       <td className="collection-name">
                         {kind === 'crypto' &&
@@ -1200,7 +1304,7 @@ export function Investments() {
                         )}
                       </td>
                       <td className="num-cell">
-                        {row.priceValid ? formatMoney(row.price) : '—'}
+                        {row.shares > 0 ? formatMoney(row.relativeCostBasis) : '—'}
                       </td>
                       <td className="num-cell">
                         {row.metricsReady ? formatMoney(row.totalInvestment) : '—'}
@@ -1208,8 +1312,10 @@ export function Investments() {
                       <td className={`num-cell ${gainClass ?? ''}`.trim()}>
                         {row.metricsReady ? (
                           <>
-                            {formatMoney(row.gainLoss)}{' '}
-                            <span className="pot-pct">({formatPct(row.gainLossPct)})</span>
+                            {formatMoney(row.netPnl)}{' '}
+                            {row.netPnlPct != null && (
+                              <span className="pot-pct">({formatPct(row.netPnlPct)})</span>
+                            )}
                           </>
                         ) : (
                           '—'

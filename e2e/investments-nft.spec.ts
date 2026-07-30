@@ -103,3 +103,45 @@ test.describe('NFT buy/sell adjusts liquid coin balance', () => {
     await expect(page.getByRole('dialog')).toContainText(/Need 666 ETH/i)
   })
 })
+
+/**
+ * Parking coins in an NFT moves capital sideways rather than taking cash out, so the
+ * relative ledger stays sticky per coin the same way average cost basis does. Net P&L
+ * then tracks only the liquid bag, matching how "Total inv." already excludes parked
+ * coins. See applyNftCoinDelta in Investments.tsx.
+ */
+test.describe('NFT moves keep the relative ledger sticky per coin', () => {
+  test('parking and reclaiming coins leaves Rel. Cost Basis unchanged', async ({ page }) => {
+    await gotoCleanInvestments(page)
+    await openCryptoTrade(page, 'ETH', '2000')
+
+    // 100 ETH at $2000 = $200,000 in.
+    await page.locator('#trade-amount').fill('100')
+    await page.locator('.trade-btn-buy').click()
+    await expect(page.locator('.trade-dialog')).toBeHidden()
+
+    const ethRow = page.locator('.owned-assets tr', { hasText: 'ETH' })
+    await expect(ethRow.locator('td').nth(1)).toHaveText('$2,000.00')
+    await expect(ethRow.locator('td').nth(3)).toContainText('$0.00')
+
+    await ethRow.getByRole('button', { name: /\+ NFTs/i }).click()
+    await page.getByRole('button', { name: /Trade ETH NFT/i }).click()
+    await page.locator('.nft-option').filter({ has: page.locator('strong', { hasText: /^neo$/ }) }).click()
+    await page.getByRole('button', { name: /BUY 1 NFT/i }).click()
+    await expect(page.getByRole('dialog', { name: /Trade NFT/i })).toBeHidden()
+
+    // 1 ETH parked: per-coin cost holds at $2,000 and the liquid bag stays flat.
+    await expect(ethRow.locator('td').nth(1)).toHaveText('$2,000.00')
+    await expect(ethRow.locator('td').nth(2)).toHaveText('$198,000.00')
+    await expect(ethRow.locator('td').nth(3)).toContainText('$0.00')
+    await expect(ethRow.locator('td').nth(4)).toHaveText('$0.00')
+
+    // Reclaiming the coin restores the full position at the same per-coin cost.
+    await page.locator('.nft-group li', { hasText: 'neo' }).first().getByRole('button', { name: /Sell/i }).click()
+
+    await expect(ethRow.locator('td').nth(1)).toHaveText('$2,000.00')
+    await expect(ethRow.locator('td').nth(2)).toHaveText('$200,000.00')
+    await expect(ethRow.locator('td').nth(3)).toContainText('$0.00')
+    await expect(ethRow.locator('td').nth(4)).toHaveText('$0.00')
+  })
+})

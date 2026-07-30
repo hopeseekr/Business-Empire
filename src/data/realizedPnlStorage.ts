@@ -1,6 +1,6 @@
 import type { InvestmentKind } from '../types'
 import { assetStorageKey } from './investmentStorage'
-import { addFixed8, formatFixed8, parseFixed8, realizedSellPnl } from './fixedPoint'
+import { addFixed8, formatFixed8, parseFixed8 } from './fixedPoint'
 
 /** Persists across tabs and browser restarts (localStorage). */
 const STORAGE_KEY = 'business-empire.realized-pnl.v1'
@@ -86,21 +86,20 @@ export function saveRealizedPnl(state: RealizedPnlState): void {
 }
 
 /**
- * Record a sell lot's realized gain/loss.
- * realized = (sellPrice − costBasis) × sharesSold
+ * Add one sale's booked profit to the cumulative trader log.
+ * The amount comes from allocateSaleProceeds (profit-first allocation), so a sale
+ * that only returns capital records a zero-dollar lot rather than a phantom gain.
+ * This log is lifetime history — liquidating a position never resets it.
  */
-export function recordRealizedSell(
+export function recordRealizedDelta(
   state: RealizedPnlState,
   kind: InvestmentKind,
   id: number,
   name: string,
-  sellPrice: string,
-  costBasis: string,
-  sharesSold: string,
+  delta: string,
 ): RealizedPnlState {
   if (!isKind(kind)) return state
-  const delta = realizedSellPnl(sellPrice, costBasis, sharesSold)
-  if (delta == null) return state
+  if (parseFixed8(delta) == null) return state
 
   const key = assetStorageKey(kind, id)
   const prev = state.byAsset[key]
