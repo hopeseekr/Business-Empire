@@ -809,6 +809,47 @@ table.collections tbody tr.selected {
   color: var(--accent);
 }
 
+.changelog-content {
+  margin: 0;
+  max-height: 34rem;
+  overflow: auto;
+  padding-right: 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.changelog-content h1,
+.changelog-content h2,
+.changelog-content h3,
+.changelog-content h4 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.changelog-content h1:first-child,
+.changelog-content h2:first-child,
+.changelog-content h3:first-child,
+.changelog-content h4:first-child {
+  margin-top: 0;
+}
+
+.changelog-content p,
+.changelog-content ul,
+.changelog-content ol {
+  margin: 0 0 0.75rem;
+}
+
+.changelog-content ul,
+.changelog-content ol {
+  padding-left: 1.3rem;
+}
+
+.changelog-content li::marker {
+  color: var(--accent);
+}
+
 .results-count {
   font-size: 0.85rem;
   color: var(--text-muted);

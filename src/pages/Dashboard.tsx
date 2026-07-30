@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import { businesses } from '../data/businesses'
 import { collections } from '../data/collections'
 import { bullion, cryptos, stocks } from '../data/investments'
+import changelog from '../../CHANGELOG.md?raw'
 
 export function Dashboard() {
   const live = businesses.filter((b) => b.status === 'live')
@@ -106,6 +108,15 @@ export function Dashboard() {
             the name and copy the answers.
           </li>
         </ul>
+      </section>
+
+      <section className="card card-muted" aria-labelledby="changelog-heading">
+        <h2 id="changelog-heading" className="section-title">
+          Changelog
+        </h2>
+        <div className="changelog-content">
+          <ReactMarkdown>{changelog}</ReactMarkdown>
+        </div>
       </section>
     </div>
   )
