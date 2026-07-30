@@ -1,3 +1,11 @@
+## v1.7.0
+
+* **[2026-07-30 08:18:14 EEST]** Allocated sale proceeds to portfolio profit first, and report positions as Rel. Cost Basis and Net P&L.
+* **[2026-07-30 03:33:46 EEST]** Updated the README as a practical guide for players.
+* **[2026-07-30 01:59:17 EEST]** Added compact held unit counts beside portfolio assets.
+* **[2026-07-30 01:58:28 EEST]** Removed the "Max Potential" column from the portfolio and trade UIs.
+* **[2026-07-29 18:24:43 EEST]** Renamed "Owned Holdings" to Portfolio and always show all held positions.
+
 ## v1.6.0: NFTs
 
 * **[2026-07-29 14:14:56 EEST]** Record NFTs in portfolio backups
