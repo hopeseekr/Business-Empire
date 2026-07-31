@@ -1,3 +1,9 @@
+## v1.7.1
+
+* **[2026-07-31 03:09:29 EEST]** Updated the sidebar Grok Build tagline.
+* **[2026-07-31 03:07:18 EEST]** Added the GitHub repository link below the Grok credit.
+* **[2026-07-31 02:58:05 EEST]** Added the current CHANGELOG.md to the home page.
+
 ## v1.7.0
 
 * **[2026-07-30 08:18:14 EEST]** Allocated sale proceeds to portfolio profit first, and report positions as Rel. Cost Basis and Net P&L.
