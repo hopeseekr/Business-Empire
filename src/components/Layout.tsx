@@ -166,16 +166,10 @@ export function Layout() {
         </nav>
 
         <div className="sidebar-footer">
-          Perfect launches without ads.
-          <br />
           <strong>{businesses.filter((b) => b.status === 'live').length}</strong>{' '}
           business live · more coming.
           <p className="grok-credit sidebar-grok-credit">
-            98% coded by{' '}
-            <a href="https://grok.com" target="_blank" rel="noopener noreferrer">
-              Grok
-            </a>{' '}
-            AI via{' '}
+            98% coded via{' '}
             <a href="https://x.ai/cli" target="_blank" rel="noopener noreferrer">
               Grok Build
             </a>
