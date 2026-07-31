@@ -179,6 +179,14 @@ export function Layout() {
             <a href="https://x.ai/cli" target="_blank" rel="noopener noreferrer">
               Grok Build
             </a>
+            <br />
+            <a
+              href="https://github.com/hopeseekr/business-empire/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub repo
+            </a>
           </p>
         </div>
       </aside>
@@ -210,6 +218,14 @@ export function Layout() {
             AI via{' '}
             <a href="https://x.ai/cli" target="_blank" rel="noopener noreferrer">
               Grok Build
+            </a>
+            <br />
+            <a
+              href="https://github.com/hopeseekr/business-empire/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub repo
             </a>
             </strong>
           </p>
